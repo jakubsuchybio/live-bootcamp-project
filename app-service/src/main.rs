@@ -2,10 +2,12 @@ use std::env;
 
 use askama::Template;
 use axum::{
+    extract::Request,
     http::StatusCode,
-    response::{Html, IntoResponse},
+    middleware::{self, Next},
+    response::{Html, IntoResponse, Response},
     routing::get,
-    Json, Router,
+    Extension, Json, Router,
 };
 use axum_extra::extract::CookieJar;
 use serde::Serialize;
@@ -16,12 +18,28 @@ async fn main() {
     let app = Router::new()
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))
-        .route("/protected", get(protected));
+        .route("/protected", get(protected))
+        .layer(middleware::from_fn(handle_prefix));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000")
+        .await
+        .unwrap();
 
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
+}
+
+// New middleware to handle the prefix
+async fn handle_prefix(mut request: Request, next: Next) -> Response {
+    let prefix = request
+        .headers()
+        .get("X-Forwarded-Prefix")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    request.extensions_mut().insert(prefix);
+    next.run(request).await
 }
 
 #[derive(Template)]
@@ -29,9 +47,10 @@ async fn main() {
 struct IndexTemplate {
     login_link: String,
     logout_link: String,
+    prefix: String,
 }
 
-async fn root() -> impl IntoResponse {
+async fn root(Extension(prefix): Extension<String>) -> impl IntoResponse {
     let mut address = env::var("AUTH_SERVICE_IP").unwrap_or("localhost".to_owned());
     if address.is_empty() {
         address = "localhost".to_owned();
@@ -42,6 +61,7 @@ async fn root() -> impl IntoResponse {
     let template = IndexTemplate {
         login_link,
         logout_link,
+        prefix,
     };
     Html(template.render().unwrap())
 }
