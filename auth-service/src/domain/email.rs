@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Email(String);
 
 #[derive(Debug)]
@@ -68,7 +69,7 @@ mod tests {
     fn test_as_ref_returns_original_string(#[case] email_str: &str) {
         // Act
         let email = Email::parse(email_str).unwrap();
-        
+
         // Assert
         assert_eq!(email.as_ref(), email_str);
     }

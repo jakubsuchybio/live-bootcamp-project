@@ -1,5 +1,5 @@
 use crate::{
-    domain::{AuthAPIError, User},
+    domain::{AuthAPIError, Email, Password, User},
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -13,13 +13,13 @@ pub async fn signup(
     let password = request.password;
 
     // Validate input
-    if email.is_empty() || !email.contains('@') {
+    let Ok(email) = Email::parse(&email) else {
         return Err(AuthAPIError::InvalidCredentials);
-    }
+    };
 
-    if password.len() < 8 {
+    let Ok(password) = Password::parse(&password) else {
         return Err(AuthAPIError::InvalidCredentials);
-    }
+    };
 
     // Create user object
     let user = User::new(email, password, request.requires_2fa);

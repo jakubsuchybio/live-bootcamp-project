@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Password(String);
 
 #[derive(Debug)]
@@ -7,7 +7,7 @@ pub enum PasswordError {
 }
 
 impl Password {
-    pub fn new(password: &str) -> Result<Self, PasswordError> {
+    pub fn parse(password: &str) -> Result<Self, PasswordError> {
         if password.len() < 8 {
             return Err(PasswordError::TooShort);
         }
@@ -35,7 +35,7 @@ mod tests {
         let valid_password = "password123";
 
         // Act
-        let result = Password::new(valid_password);
+        let result = Password::parse(valid_password);
 
         // Assert
         assert!(result.is_ok());
@@ -49,7 +49,7 @@ mod tests {
     #[case("123", PasswordError::TooShort)] // 3 chars
     fn invalid_passwords_return_errors(#[case] input: &str, #[case] expected_error: PasswordError) {
         // Act
-        let result = Password::new(input);
+        let result = Password::parse(input);
 
         // Assert
         assert!(result.is_err());
@@ -73,7 +73,7 @@ mod tests {
     #[case("P@ssw0rd!2023")] // Complex password
     fn test_as_ref_returns_original_password(#[case] password_str: &str) {
         // Act
-        let password = Password::new(password_str).unwrap();
+        let password = Password::parse(password_str).unwrap();
 
         // Assert
         assert_eq!(password.as_ref(), password_str);
@@ -86,7 +86,7 @@ mod tests {
             return TestResult::discard();
         }
 
-        match Password::new(&password) {
+        match Password::parse(&password) {
             Ok(pwd) => TestResult::from_bool(pwd.as_ref() == password),
             Err(_) => TestResult::failed(),
         }
@@ -99,7 +99,7 @@ mod tests {
             return TestResult::discard();
         }
 
-        match Password::new(&password) {
+        match Password::parse(&password) {
             Ok(_) => TestResult::failed(),
             Err(e) => TestResult::from_bool(matches!(e, PasswordError::TooShort)),
         }
