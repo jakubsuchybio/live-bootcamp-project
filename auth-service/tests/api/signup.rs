@@ -1,5 +1,6 @@
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::domain::ErrorResponse;
+use rstest::rstest;
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
@@ -20,51 +21,45 @@ async fn should_return_201_if_valid_input() {
     assert_eq!(response.status().as_u16(), 201);
 }
 
-#[tokio::test]
-async fn should_return_400_if_invalid_input() {
-    // Arrange
-    let app = TestApp::new().await;
-    let invalid_requests = [
-        // empty email
-        serde_json::json!({
+#[rstest]
+#[case::empty_email(serde_json::json!({
             "email": "",
             "password": "password",
             "requires2FA": true
-        }),
-        // email not containing @
-        serde_json::json!({
+        }))]
+#[case::invalid_email_format(serde_json::json!({
             "email": "aaa",
             "password": "password",
             "requires2FA": true
-        }),
-        // password shorter than 8 characters
-        serde_json::json!({
-            "email": "ahoj",
+        }))]
+#[case::short_password(serde_json::json!({
+            "email": "test@example.com",
             "password": "123",
             "requires2FA": true
-        }),
-    ];
+        }))]
+#[tokio::test]
+async fn should_return_400_if_invalid_input(#[case] request: serde_json::Value) {
+    // Arrange
+    let app = TestApp::new().await;
 
-    for request in invalid_requests.iter() {
-        // Act
-        let response = app.post_signup(request).await;
+    // Act
+    let response = app.post_signup(&request).await;
 
-        // Assert
-        assert_eq!(
-            response.status().as_u16(),
-            400,
-            "Failed for request: {:?}",
-            request
-        );
-        assert_eq!(
-            response
-                .json::<ErrorResponse>()
-                .await
-                .expect("Could not deserialize response body to ErrorResponse")
-                .error,
-            "Invalid credentials".to_owned()
-        );
-    }
+    // Assert
+    assert_eq!(
+        response.status().as_u16(),
+        400,
+        "Failed for request: {:?}",
+        request
+    );
+    assert_eq!(
+        response
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+        "Invalid credentials".to_owned()
+    );
 }
 
 #[tokio::test]
@@ -108,39 +103,32 @@ async fn should_return_409_if_email_already_exists() {
     )
 }
 
+#[rstest]
+#[case::missing_email_field(serde_json::json!({
+            "password": "password123",
+            "requires2FA": true
+        }))]
+#[case::missing_password_field(serde_json::json!({
+            "email": "test@example.com",
+            "requires2FA": true
+        }))]
+#[case::missing_requires2fa_field(serde_json::json!({
+            "email": "test@example.com",
+            "password": "password123"
+        }))]
 #[tokio::test]
-async fn should_return_422_if_malformed_input() {
+async fn should_return_422_if_malformed_input(#[case] test_case: serde_json::Value) {
     // Arrange
     let app = TestApp::new().await;
-    let random_email = get_random_email();
 
-    // TODO: add more malformed input test cases
-    let test_cases = [
-        serde_json::json!({
-            "password": "password123",
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": random_email,
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": random_email,
-            "password": "password123",
-        }),
-    ];
+    // Act
+    let response = app.post_signup(&test_case).await;
 
-    // Act & Assert for each test case
-    for test_case in test_cases.iter() {
-        // Act
-        let response = app.post_signup(test_case).await;
-
-        // Assert
-        assert_eq!(
-            response.status().as_u16(),
-            422,
-            "Failed for input: {:?}",
-            test_case
-        );
-    }
+    // Assert
+    assert_eq!(
+        response.status().as_u16(),
+        422,
+        "Failed for input: {:?}",
+        test_case
+    );
 }
