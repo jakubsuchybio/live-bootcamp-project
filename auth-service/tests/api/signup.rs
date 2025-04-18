@@ -1,4 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
+use auth_service::{domain::ErrorResponse, routes::SignupResponse};
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
@@ -23,29 +24,45 @@ async fn should_return_201_if_valid_input() {
 async fn should_return_400_if_invalid_input() {
     // Arrange
     let app = TestApp::new().await;
-    let invalid_emails = [
-        "",                    // empty
-        "a@a.cz",              // less than 8 characters
-        "ahoj",                // not containing @
-        "ahoj_ahoj_ahoj_ahoj", // not containing @
+    let invalid_requests = [
+        // empty email
+        serde_json::json!({
+            "email": "",
+            "password": "password",
+            "requires2FA": true
+        }),
+        // email not containing @
+        serde_json::json!({
+            "email": "aaa",
+            "password": "password",
+            "requires2FA": true
+        }),
+        // password shorter than 8 characters
+        serde_json::json!({
+            "email": "ahoj",
+            "password": "123",
+            "requires2FA": true
+        }),
     ];
 
-    for email in invalid_emails.iter() {
+    for request in invalid_requests.iter() {
         // Act
-        let response = app
-            .post_signup(&serde_json::json!({
-                "email": email,
-                "password": "password",
-                "requires2FA": true
-            }))
-            .await;
+        let response = app.post_signup(request).await;
 
         // Assert
         assert_eq!(
             response.status().as_u16(),
             400,
-            "Failed for password: {}",
-            email
+            "Failed for request: {:?}",
+            request
+        );
+        assert_eq!(
+            response
+                .json::<ErrorResponse>()
+                .await
+                .expect("Could not deserialize response body to ErrorResponse")
+                .error,
+            "Invalid credentials".to_owned()
         );
     }
 }
@@ -80,6 +97,15 @@ async fn should_return_409_if_email_already_exists() {
     assert_eq!(first_response.status().as_u16(), 201);
     // Second signup fails with conflict
     assert_eq!(second_response.status().as_u16(), 409);
+
+    assert_eq!(
+        second_response
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+        "User already exists".to_owned()
+    )
 }
 
 #[tokio::test]

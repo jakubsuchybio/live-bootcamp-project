@@ -1,7 +1,8 @@
 mod app_state;
-mod domain;
-mod routes;
 mod services;
+
+pub mod domain;
+pub mod routes;
 
 use askama::Template;
 use axum::{
