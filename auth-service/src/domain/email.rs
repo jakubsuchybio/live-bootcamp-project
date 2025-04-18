@@ -1,6 +1,4 @@
-pub struct Email {
-    address: String,
-}
+pub struct Email(String);
 
 #[derive(Debug)]
 pub enum EmailError {
@@ -13,15 +11,13 @@ impl Email {
             return Err(EmailError::InvalidEmail);
         }
 
-        Ok(Email {
-            address: address.to_string(),
-        })
+        Ok(Email(address.to_string()))
     }
 }
 
 impl AsRef<str> for Email {
     fn as_ref(&self) -> &str {
-        &self.address
+        &self.0
     }
 }
 
