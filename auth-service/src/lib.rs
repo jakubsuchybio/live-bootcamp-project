@@ -1,4 +1,7 @@
+mod app_state;
+mod domain;
 mod routes;
+mod services;
 
 use askama::Template;
 use axum::{
@@ -12,6 +15,9 @@ use axum::{
 use routes::{login, logout, signup, verify_2fa, verify_token};
 use std::error::Error;
 use tower_http::services::ServeDir;
+
+pub use app_state::AppState;
+pub use services::HashmapUserStore;
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -27,13 +33,13 @@ async fn root(Extension(prefix): Extension<String>) -> impl axum::response::Into
 // This struct encapsulates our application-related logic.
 pub struct Application {
     server: Serve<Router, Router>,
-    // address is exposed as a public field
+    // address is exposed as a public field,
     // so we have access to it in tests.
     pub address: String,
 }
 
 impl Application {
-    pub async fn build(address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         let router = Router::new()
             .route("/", get(root))
             .nest_service("/assets", ServeDir::new("assets"))
@@ -42,7 +48,8 @@ impl Application {
             .route("/logout", post(logout))
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
-            .layer(middleware::from_fn(handle_prefix));
+            .layer(middleware::from_fn(handle_prefix))
+            .with_state(app_state);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();

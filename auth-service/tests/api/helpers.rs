@@ -1,4 +1,6 @@
-use auth_service::Application;
+use auth_service::{AppState, Application, HashmapUserStore};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 pub struct TestApp {
@@ -12,7 +14,11 @@ pub fn get_random_email() -> String {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let app = Application::build("127.0.0.1:0")
+        let user_store = HashmapUserStore::new();
+        let app_state = AppState {
+            user_store: Arc::from(RwLock::from(user_store)),
+        };
+        let app = Application::build(app_state, "127.0.0.1:0")
             .await
             .expect("Failed to build app");
 
