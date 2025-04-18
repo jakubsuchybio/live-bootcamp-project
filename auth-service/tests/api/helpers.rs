@@ -14,7 +14,9 @@ pub fn get_random_email() -> String {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let user_store = HashmapUserStore::new();
+        let user_store = HashmapUserStore {
+            ..Default::default()
+        };
         let app_state = AppState {
             user_store: Arc::from(RwLock::from(user_store)),
         };

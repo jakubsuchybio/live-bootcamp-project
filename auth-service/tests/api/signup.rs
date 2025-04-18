@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{domain::ErrorResponse, routes::SignupResponse};
+use auth_service::domain::ErrorResponse;
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {

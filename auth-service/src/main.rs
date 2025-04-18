@@ -4,7 +4,9 @@ use tokio::sync::RwLock;
 
 #[tokio::main]
 async fn main() {
-    let user_store = HashmapUserStore::new();
+    let user_store = HashmapUserStore {
+        ..Default::default()
+    };
     let app_state = AppState {
         user_store: Arc::from(RwLock::from(user_store)),
     };

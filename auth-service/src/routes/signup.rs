@@ -9,23 +9,33 @@ pub async fn signup(
     State(state): State<AppState>,
     Json(request): Json<SignupRequest>,
 ) -> Result<impl IntoResponse, AuthAPIError> {
+    let email = request.email;
+    let password = request.password;
+
     // Validate input
-    validate_credentials(&request.email, &request.password)?;
+    if email.is_empty() || !email.contains('@') {
+        return Err(AuthAPIError::InvalidCredentials);
+    }
+
+    if password.len() < 8 {
+        return Err(AuthAPIError::InvalidCredentials);
+    }
 
     // Create user object
-    let user = User::new(request.email, request.password, request.requires_2fa);
+    let user = User::new(email, password, request.requires_2fa);
 
     // Acquire lock on user store
     let mut user_store = state.user_store.write().await;
 
     // Check if user already exists
-    if let Ok(_) = user_store.get_user(&user.email) {
+    if let Ok(_) = user_store.get_user(&user.email).await {
         return Err(AuthAPIError::UserAlreadyExists);
     }
 
     // Add user to store
     user_store
         .add_user(user)
+        .await
         .map_err(|_| AuthAPIError::UnexpectedError)?;
 
     // Return success response
@@ -34,21 +44,6 @@ pub async fn signup(
     });
 
     Ok((StatusCode::CREATED, response))
-}
-
-/// Validate email and password
-fn validate_credentials(email: &str, password: &str) -> Result<(), AuthAPIError> {
-    // Validate email
-    if email.is_empty() || !email.contains('@') {
-        return Err(AuthAPIError::InvalidCredentials);
-    }
-
-    // Validate password
-    if password.len() < 8 {
-        return Err(AuthAPIError::InvalidCredentials);
-    }
-
-    Ok(())
 }
 
 #[derive(Deserialize)]
