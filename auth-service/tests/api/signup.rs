@@ -2,22 +2,75 @@ use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
+    // Arrange
     let app = TestApp::new().await;
     let random_email = get_random_email();
-    
-    let response = app.post_signup(&serde_json::json!({
-        "email": random_email,
-        "password": "password123",
-        "requires2FA": true
-    })).await;
-    
+
+    // Act
+    let response = app
+        .post_signup(&serde_json::json!({
+            "email": random_email,
+            "password": "password123",
+            "requires2FA": true
+        }))
+        .await;
+
+    // Assert
     assert_eq!(response.status().as_u16(), 201);
 }
 
 #[tokio::test]
-async fn should_return_422_if_malformed_input() {
+async fn should_return_400_if_invalid_input() {
+    // Arrange
     let app = TestApp::new().await;
 
+    // Act
+    let response = app
+        .post_signup(&serde_json::json!({
+            "password": "password123",
+            "requires2FA": true
+        }))
+        .await;
+
+    // Assert
+    assert_eq!(response.status().as_u16(), 400);
+}
+
+#[tokio::test]
+async fn should_return_409_if_email_already_exists() {
+    // Arrange
+    let app = TestApp::new().await;
+    let random_email = get_random_email();
+
+    // Act - First signup
+    let response = app
+        .post_signup(&serde_json::json!({
+            "email": random_email,
+            "password": "password123",
+            "requires2FA": true
+        }))
+        .await;
+
+    // Assert - First signup successful
+    assert_eq!(response.status().as_u16(), 201);
+
+    // Act - Second signup with same email
+    let response = app
+        .post_signup(&serde_json::json!({
+            "email": random_email,
+            "password": "password123",
+            "requires2FA": true
+        }))
+        .await;
+
+    // Assert - Second signup fails with conflict
+    assert_eq!(response.status().as_u16(), 409);
+}
+
+#[tokio::test]
+async fn should_return_422_if_malformed_input() {
+    // Arrange
+    let app = TestApp::new().await;
     let random_email = get_random_email();
 
     // TODO: add more malformed input test cases
@@ -36,8 +89,12 @@ async fn should_return_422_if_malformed_input() {
         }),
     ];
 
+    // Act & Assert for each test case
     for test_case in test_cases.iter() {
+        // Act
         let response = app.post_signup(test_case).await;
+        
+        // Assert
         assert_eq!(
             response.status().as_u16(),
             422,
