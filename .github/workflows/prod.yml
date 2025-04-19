@@ -126,11 +126,16 @@ jobs:
             # Wait for nginx to start
             sleep 10
             
-            # Get real certificates - with non-interactive and quiet flags to prevent hanging
-            docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot \
+            # Get real certificates
+            docker compose run --rm --entrypoint "certbot certonly --webroot --webroot-path /var/www/certbot \
               --email biosek@email.cz -d live-bootcamp.biosek.cz \
-              --agree-tos --no-eff-email --non-interactive --quiet
+              --agree-tos --no-eff-email --non-interactive --quiet" certbot
             
             # Reload nginx to use the new certificates
             docker compose exec nginx nginx -s reload
+            
+            # Set up a cronjob for certificate renewal
+            echo "0 0,12 * * * docker compose -f /root/compose.yml run --rm --entrypoint 'certbot renew --quiet' certbot && docker compose -f /root/compose.yml exec nginx nginx -s reload" > /tmp/certbot-cron
+            crontab /tmp/certbot-cron
+            rm /tmp/certbot-cron
           fi

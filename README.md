@@ -57,7 +57,11 @@ The production setup uses Nginx as a reverse proxy with SSL certificates managed
 
 ### SSL Certificate Management
 
-SSL certificates are automatically renewed by the Certbot container, which checks for renewals every 12 hours. The Nginx container reloads every 6 hours to pick up any renewed certificates.
+SSL certificates are automatically renewed using a system cron job that runs twice daily (at 12 AM and 12 PM). The cron job:
+1. Runs Certbot in a temporary container to check for and process renewals
+2. Reloads the Nginx container to pick up any renewed certificates
+
+This approach is more reliable than running Certbot as a long-lived container and eliminates deployment hangs.
 
 ### Manual Certificate Operations
 
@@ -65,15 +69,15 @@ If you need to manually manage certificates on the droplet:
 
 1. To force certificate renewal:
 ```bash
-docker compose run --rm certbot renew --force-renewal
+docker compose run --rm --entrypoint "certbot renew --force-renewal" certbot
 docker compose exec nginx nginx -s reload
 ```
 
 2. To add a new domain:
 ```bash
-docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot \
+docker compose run --rm --entrypoint "certbot certonly --webroot --webroot-path /var/www/certbot \
   --email admin@biosek.cz -d new-domain.example.com \
-  --agree-tos --no-eff-email
+  --agree-tos --no-eff-email" certbot
 ```
 
 3. After adding a new domain, update the Nginx configuration in `nginx/conf.d/app.conf` and reload:
@@ -85,5 +89,5 @@ docker compose exec nginx nginx -s reload
 
 To check the status of your SSL certificates:
 ```bash
-docker compose run --rm certbot certificates
+docker compose run --rm --entrypoint "certbot certificates" certbot
 ```
