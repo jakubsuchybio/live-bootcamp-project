@@ -1,20 +1,32 @@
 services:
   app-service:
-    image: biosek/app-service:latest # specify name of image on Docker Hub
+    image: biosek/app-service:${TAG:-latest} # use versioned tags with fallback to latest
     restart: "always" # automatically restart container when server crashes
     environment: # set up environment variables
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
     # No direct port exposure as Nginx will handle external access
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on: # only run app-service after auth-service has started
       auth-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - web
 
   auth-service:
-    image: biosek/auth-service:latest
+    image: biosek/auth-service:${TAG:-latest}
     restart: "always" # automatically restart container when server crashes
     # No direct port exposure as Nginx will handle external access
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     networks:
       - web
 

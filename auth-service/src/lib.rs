@@ -7,8 +7,9 @@ pub mod routes;
 use askama::Template;
 use axum::{
     extract::Request,
+    http::StatusCode,
     middleware::{self, Next},
-    response::{Html, Response},
+    response::{Html, IntoResponse, Response},
     routing::{get, post},
     serve::Serve,
     Extension, Router,
@@ -49,6 +50,7 @@ impl Application {
             .route("/logout", post(logout))
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
+            .route("/health", get(health))
             .layer(middleware::from_fn(handle_prefix))
             .with_state(app_state);
 
@@ -77,4 +79,9 @@ async fn handle_prefix(mut request: Request, next: Next) -> Response {
 
     request.extensions_mut().insert(prefix);
     next.run(request).await
+}
+
+// Simple health check endpoint for container health monitoring
+async fn health() -> impl IntoResponse {
+    StatusCode::OK
 }

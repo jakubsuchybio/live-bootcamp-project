@@ -19,6 +19,7 @@ async fn main() {
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))
         .route("/protected", get(protected))
+        .route("/health", get(health))
         .layer(middleware::from_fn(handle_prefix));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000")
@@ -105,4 +106,9 @@ async fn protected(jar: CookieJar) -> impl IntoResponse {
 #[derive(Serialize)]
 pub struct ProtectedRouteResponse {
     pub img_url: String,
+}
+
+// Simple health check endpoint for container health monitoring
+async fn health() -> impl IntoResponse {
+    StatusCode::OK
 }

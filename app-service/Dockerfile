@@ -2,7 +2,7 @@
 FROM rust:1.85-alpine AS chef
 USER root
 # Add cargo-chef to cache dependencies
-RUN apk add --no-cache musl-dev & cargo install cargo-chef
+RUN apk add --no-cache musl-dev build-base && cargo install cargo-chef --locked
 WORKDIR /app
 
 FROM chef AS planner
@@ -22,6 +22,8 @@ RUN cargo build --release --bin app-service
 # Start with a minimal image and copy over the binary and assets folder.
 FROM debian:buster-slim AS runtime
 WORKDIR /app
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/app-service /usr/local/bin
 COPY --from=builder /app/assets /app/assets
 ENV AUTH_SERVICE_HOST_NAME=auth-service
