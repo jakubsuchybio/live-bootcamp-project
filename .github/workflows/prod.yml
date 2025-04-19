@@ -81,8 +81,11 @@ jobs:
     - name: Install sshpass
       run: sudo apt-get install sshpass
 
-    - name: Copy compose.yml to droplet
-      run: sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
+    - name: Copy deployment files to droplet
+      run: |
+        sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' ssh -o StrictHostKeyChecking=no root@${{ vars.DROPLET_IP }} "mkdir -p ~/nginx/conf.d ~/certbot/conf ~/certbot/www"
+        sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
+        sshpass -v -p '${{ secrets.DROPLET_PASSWORD }}' scp -o StrictHostKeyChecking=no -r nginx/conf.d/* root@${{ vars.DROPLET_IP }}:~/nginx/conf.d/
 
     - name: Deploy
       uses: appleboy/ssh-action@master
@@ -93,6 +96,46 @@ jobs:
         script: |
           cd ~
           export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
+          
+          # If certificates don't exist yet, create dummy certs for initial setup
+          if [ ! -d "/root/certbot/conf/live/live-bootcamp.biosek.cz" ]; then
+            mkdir -p /root/certbot/conf/live/live-bootcamp.biosek.cz
+            openssl req -x509 -nodes -newkey rsa:4096 -days 1 \
+              -keyout /root/certbot/conf/live/live-bootcamp.biosek.cz/privkey.pem \
+              -out /root/certbot/conf/live/live-bootcamp.biosek.cz/fullchain.pem \
+              -subj '/CN=live-bootcamp.biosek.cz'
+            
+            # Create dummy options file so nginx doesn't fail on first start
+            mkdir -p /root/certbot/conf
+            echo "ssl_session_cache shared:le_nginx_SSL:10m;" > /root/certbot/conf/options-ssl-nginx.conf
+            echo "ssl_session_timeout 1440m;" >> /root/certbot/conf/options-ssl-nginx.conf
+            echo "ssl_protocols TLSv1.2 TLSv1.3;" >> /root/certbot/conf/options-ssl-nginx.conf
+            echo "ssl_prefer_server_ciphers off;" >> /root/certbot/conf/options-ssl-nginx.conf
+            
+            # Create dummy dhparam
+            openssl dhparam -out /root/certbot/conf/ssl-dhparams.pem 2048
+          fi
+          
+          # Take down existing services
           docker compose down
           docker compose pull
           docker compose up -d
+          
+          # If we created dummy certs, now get the real ones
+          if [ ! -f "/root/certbot/conf/live/live-bootcamp.biosek.cz/fullchain.pem.bak" ]; then
+            # Wait for nginx to start
+            sleep 10
+            
+            # Get real certificates
+            docker compose run --rm --entrypoint "certbot certonly --webroot --webroot-path /var/www/certbot \
+              --email biosek@email.cz -d live-bootcamp.biosek.cz \
+              --agree-tos --no-eff-email --non-interactive --quiet" certbot
+            
+            # Reload nginx to use the new certificates
+            docker compose exec nginx nginx -s reload
+            
+            # Set up a cronjob for certificate renewal
+            echo "0 0,12 * * * docker compose -f /root/compose.yml run --rm --entrypoint 'certbot renew --quiet' certbot && docker compose -f /root/compose.yml exec nginx nginx -s reload" > /tmp/certbot-cron
+            crontab /tmp/certbot-cron
+            rm /tmp/certbot-cron
+          fi

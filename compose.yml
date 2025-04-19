@@ -4,17 +4,46 @@ services:
     restart: "always" # automatically restart container when server crashes
     environment: # set up environment variables
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
-    ports:
-      - "8000:8000" # expose port 8000 so that applications outside the container can connect to it 
+    # No direct port exposure as Nginx will handle external access
     depends_on: # only run app-service after auth-service has started
       auth-service:
         condition: service_started
+    networks:
+      - web
+
   auth-service:
     image: biosek/auth-service:latest
     restart: "always" # automatically restart container when server crashes
+    # No direct port exposure as Nginx will handle external access
+    networks:
+      - web
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     ports:
-      - "3000:3000" # expose port 3000 so that applications outside the container can connect to it
+      - "80:80"
+      - "443:443"
+    networks:
+      - web
+    depends_on:
+      - app-service
+      - auth-service
+
+  certbot:
+    image: certbot/certbot
+    restart: "no"
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'exit 0'"
+    networks:
+      - web
 
 networks:
   web:
-    external: true
+    # Network is now managed by Docker Compose

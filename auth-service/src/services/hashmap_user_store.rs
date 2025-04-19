@@ -1,12 +1,13 @@
 use crate::domain::{Email, Password, User, UserStore, UserStoreError};
 use std::collections::HashMap;
+use async_trait::async_trait;
 
 #[derive(Default)]
 pub struct HashmapUserStore {
     pub users: HashMap<Email, User>,
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl UserStore for HashmapUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         if self.users.contains_key(&user.email) {
