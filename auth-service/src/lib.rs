@@ -8,7 +8,7 @@ pub mod utils;
 use askama::Template;
 use axum::{
     extract::Request,
-    http::StatusCode,
+    http::{Method, StatusCode},
     middleware::{self, Next},
     response::{Html, IntoResponse, Response},
     routing::{get, post},
@@ -17,7 +17,7 @@ use axum::{
 };
 use routes::{login, logout, signup, verify_2fa, verify_token};
 use std::error::Error;
-use tower_http::services::ServeDir;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 pub use app_state::AppState;
 pub use services::HashmapUserStore;
@@ -43,6 +43,19 @@ pub struct Application {
 
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
+        // Allow the app service(running on our local machine and in production) to call the auth service
+        let allowed_origins = [
+            "http://localhost:8000".parse()?,
+            "https://live-bootcamp.biosek.cz/app/".parse()?,
+        ];
+
+        let cors = CorsLayer::new()
+            // Allow GET and POST requests
+            .allow_methods([Method::GET, Method::POST])
+            // Allow cookies to be included in requests
+            .allow_credentials(true)
+            .allow_origin(allowed_origins);
+
         let router = Router::new()
             .route("/", get(root))
             .nest_service("/assets", ServeDir::new("assets"))
@@ -52,8 +65,9 @@ impl Application {
             .route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
             .route("/health", get(health))
+            .with_state(app_state.clone())
             .layer(middleware::from_fn(handle_prefix))
-            .with_state(app_state.clone());
+            .layer(cors);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();

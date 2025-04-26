@@ -9,6 +9,8 @@ pub enum AuthAPIError {
     UserAlreadyExists,
     InvalidCredentials,
     IncorrectCredentials,
+    MissingToken,
+    InvalidToken,
     UnexpectedError,
 }
 
@@ -22,6 +24,8 @@ impl IntoResponse for AuthAPIError {
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
             AuthAPIError::IncorrectCredentials => {
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             }
