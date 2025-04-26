@@ -54,8 +54,13 @@ async fn root(Extension(prefix): Extension<String>) -> impl IntoResponse {
     if address.is_empty() {
         address = "localhost".to_owned();
     }
-    let login_link = format!("http://{}:3000", address);
-    let logout_link = format!("http://{}:3000/logout", address);
+    let prefix = if prefix.is_empty() {
+        ":3000".to_string()
+    } else {
+        prefix
+    };
+    let login_link = format!("http://{}{}", address, prefix);
+    let logout_link = format!("http://{}{}/logout", address, prefix);
 
     let template = IndexTemplate {
         login_link,
