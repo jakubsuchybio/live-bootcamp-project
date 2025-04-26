@@ -6,7 +6,7 @@ async fn logout_returns_200() {
     let app = TestApp::new().await;
 
     // Act
-    let response = app.logout().await;
+    let response = app.post_logout().await;
 
     // Assert
     assert_eq!(response.status().as_u16(), 200);

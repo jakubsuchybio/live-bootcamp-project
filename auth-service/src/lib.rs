@@ -3,6 +3,7 @@ mod services;
 
 pub mod domain;
 pub mod routes;
+pub mod utils;
 
 use askama::Template;
 use axum::{
@@ -34,7 +35,7 @@ async fn root(Extension(prefix): Extension<String>) -> impl axum::response::Into
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
-    server: Serve<tokio::net::TcpListener, Router, Router>,
+    server: Serve<Router, Router>,
     // address is exposed as a public field,
     // so we have access to it in tests.
     pub address: String,
@@ -52,7 +53,7 @@ impl Application {
             .route("/verify-token", post(verify_token))
             .route("/health", get(health))
             .layer(middleware::from_fn(handle_prefix))
-            .with_state(app_state);
+            .with_state(app_state.clone());
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();

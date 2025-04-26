@@ -42,6 +42,7 @@ jobs:
           # Use optimized compilation for faster builds on all workspace members
           export CARGO_INCREMENTAL=1
           export CARGO_NET_RETRY=10
+          export JWT_SECRET=secret
           RUSTFLAGS="-C target-cpu=native" cargo test --workspace --no-fail-fast --release
 
         # Set up Docker Buildx for multi-platform builds
@@ -102,6 +103,7 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd ~
+            export JWT_SECRET=${{ secrets.JWT_SECRET }}
             export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
             export TAG=${{ github.sha }}
 

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub enum AuthAPIError {
     UserAlreadyExists,
     InvalidCredentials,
+    IncorrectCredentials,
     UnexpectedError,
 }
 
@@ -21,6 +22,9 @@ impl IntoResponse for AuthAPIError {
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::IncorrectCredentials => {
+                (StatusCode::UNAUTHORIZED, "Incorrect credentials")
+            }
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
