@@ -22,11 +22,11 @@ pub async fn logout(
         return (jar, Err(AuthAPIError::InvalidToken));
     };
 
-    // Delete JWT cookie from the `CookieJar`
-    let jar = jar.remove(Cookie::from(JWT_COOKIE_NAME));
-
     let mut banned_token_store = state.banned_token_store.write().await;
     banned_token_store.add_banned_token(token).await;
+
+    // Delete JWT cookie from the `CookieJar`
+    let jar = jar.remove(Cookie::from(JWT_COOKIE_NAME));
 
     (jar, Ok(StatusCode::OK))
 }
