@@ -1,5 +1,5 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{cookie::Cookie, CookieJar};
 
 use crate::{
     domain::AuthAPIError,
@@ -23,7 +23,7 @@ pub async fn logout(
     };
 
     // Delete JWT cookie from the `CookieJar`
-    let jar = jar.remove(JWT_COOKIE_NAME);
+    let jar = jar.remove(Cookie::from(JWT_COOKIE_NAME));
 
     let mut banned_token_store = state.banned_token_store.write().await;
     banned_token_store.add_banned_token(token).await;
