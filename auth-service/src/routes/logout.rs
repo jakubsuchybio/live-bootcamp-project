@@ -1,4 +1,5 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
+use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 
 use crate::{
@@ -26,14 +27,10 @@ pub async fn logout(
     let mut banned_token_store = state.banned_token_store.write().await;
     banned_token_store.add_banned_token(token).await;
 
-    println!("Before removal: {:?}", jar);
     // Delete JWT cookie from the `CookieJar`
-    let mut cloned_cookie = cookie.clone();
-    cloned_cookie.make_removal();
-    cloned_cookie.set_path("/");
-
-    let jar = jar.remove(cloned_cookie);
-    println!("After removal: {:?}", jar);
+    let mut cookie_for_removal = Cookie::from(JWT_COOKIE_NAME);
+    cookie_for_removal.set_path("/"); // Needed for https context removal
+    let jar = jar.remove(cookie_for_removal);
 
     (jar, Ok(StatusCode::OK))
 }
