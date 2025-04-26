@@ -13,6 +13,22 @@ use axum_extra::extract::CookieJar;
 use serde::Serialize;
 use tower_http::services::ServeDir;
 
+fn get_auth_address(prefix: &str, path: &str) -> String {
+    let address = match env::var("AUTH_SERVICE_IP") {
+        Err(_) => "localhost".to_owned(),
+        Ok(addr) if addr.is_empty() => "localhost".to_owned(),
+        Ok(addr) => addr,
+    };
+
+    let (security, port) = if prefix.is_empty() {
+        ("http://", ":3000")
+    } else {
+        ("https://", prefix)
+    };
+
+    format!("{security}{address}{port}{path}")
+}
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
@@ -50,17 +66,8 @@ struct IndexTemplate {
 }
 
 async fn root(Extension(prefix): Extension<String>) -> impl IntoResponse {
-    let mut address = env::var("AUTH_SERVICE_IP").unwrap_or("localhost".to_owned());
-    if address.is_empty() {
-        address = "localhost".to_owned();
-    }
-    let prefix = if prefix.is_empty() {
-        ":3000".to_string()
-    } else {
-        prefix
-    };
-    let login_link = format!("http://{}{}", address, prefix);
-    let logout_link = format!("http://{}{}/logout", address, prefix);
+    let login_link = get_auth_address(&prefix, "");
+    let logout_link = get_auth_address(&prefix, "/logout");
 
     let template = IndexTemplate {
         login_link,
@@ -70,7 +77,7 @@ async fn root(Extension(prefix): Extension<String>) -> impl IntoResponse {
     Html(template.render().unwrap())
 }
 
-async fn protected(jar: CookieJar) -> impl IntoResponse {
+async fn protected(jar: CookieJar, Extension(prefix): Extension<String>) -> impl IntoResponse {
     let jwt_cookie = match jar.get("jwt") {
         Some(cookie) => cookie,
         None => {
@@ -84,9 +91,13 @@ async fn protected(jar: CookieJar) -> impl IntoResponse {
         "token": &jwt_cookie.value(),
     });
 
-    let auth_hostname = env::var("AUTH_SERVICE_HOST_NAME").unwrap_or("localhost".to_owned());
-    let url = format!("http://{}:3000/verify-token", auth_hostname);
-    let response = match api_client.post(&url).json(&verify_token_body).send().await {
+    let verify_token_link = get_auth_address(&prefix, "/verify-token");
+    let response = match api_client
+        .post(&verify_token_link)
+        .json(&verify_token_body)
+        .send()
+        .await
+    {
         Ok(response) => response,
         Err(_) => {
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();

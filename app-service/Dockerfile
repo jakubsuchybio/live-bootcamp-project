@@ -26,5 +26,4 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/app-service /usr/local/bin
 COPY --from=builder /app/assets /app/assets
-ENV AUTH_SERVICE_HOST_NAME=auth-service
 ENTRYPOINT ["/usr/local/bin/app-service"]
