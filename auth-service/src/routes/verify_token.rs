@@ -11,7 +11,7 @@ pub async fn verify_token(
     // Validate incoming JWT
     let token = request.token;
     let Ok(_claims) = validate_token(&token, state.banned_token_store.clone()).await else {
-        return Err(AuthAPIError::InvalidToken);
+        return Err(AuthAPIError::VerificationFailed);
     };
     Ok(StatusCode::OK)
 }

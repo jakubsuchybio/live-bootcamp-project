@@ -47,7 +47,8 @@ impl Application {
         let allowed_origins = [
             "http://localhost:8000".parse()?,
             "http://127.0.0.1:8000".parse()?,
-            "https://live-bootcamp.biosek.cz/app/".parse()?,
+            "https://live-bootcamp.biosek.cz/app".parse()?,
+            "https://live-bootcamp.biosek.cz/auth".parse()?,
         ];
 
         let cors = CorsLayer::new()
