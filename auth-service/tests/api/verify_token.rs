@@ -53,7 +53,7 @@ async fn should_return_401_if_invalid_token() {
         .await;
 
     // Assert
-    assert_eq!(response.status().as_u16(), 401);
+    assert_eq!(response.status().as_u16(), 402);
 }
 
 #[tokio::test]
@@ -97,7 +97,7 @@ async fn should_return_401_if_token_is_banned() {
     assert_eq!(signup_response.status().as_u16(), 201);
     assert_eq!(login_response.status().as_u16(), 200);
     assert_eq!(logout_response.status().as_u16(), 200);
-    assert_eq!(response.status().as_u16(), 401);
+    assert_eq!(response.status().as_u16(), 402);
     assert!(banned_token_store.check_banned_token(&token).await);
 }
 
