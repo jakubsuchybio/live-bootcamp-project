@@ -30,8 +30,7 @@ pub async fn logout(
     println!("Before removal: {:?}", jar);
     // Delete JWT cookie from the `CookieJar`
     let mut cloned_cookie = cookie2.clone();
-    cloned_cookie.set_path("/");
-    cloned_cookie.set_max_age(time::Duration::new(0, 0));
+    cloned_cookie.make_removal();
 
     let jar = jar.remove(cloned_cookie);
     println!("After removal: {:?}", jar);
