@@ -23,7 +23,7 @@ fn get_auth_address(prefix: &str, path: &str) -> String {
     let (security, port) = if prefix.is_empty() {
         ("http://", ":3000")
     } else {
-        ("https://", prefix)
+        ("https://", "/auth")
     };
 
     format!("{security}{address}{port}{path}")
