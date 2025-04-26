@@ -46,6 +46,7 @@ impl Application {
         // Allow the app service(running on our local machine and in production) to call the auth service
         let allowed_origins = [
             "http://localhost:8000".parse()?,
+            "http://127.0.0.1:8000".parse()?,
             "https://live-bootcamp.biosek.cz/app/".parse()?,
         ];
 
