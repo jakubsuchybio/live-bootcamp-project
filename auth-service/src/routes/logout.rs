@@ -25,8 +25,10 @@ pub async fn logout(
     let mut banned_token_store = state.banned_token_store.write().await;
     banned_token_store.add_banned_token(token).await;
 
+    println!("Before removal: {:?}", jar);
     // Delete JWT cookie from the `CookieJar`
     let jar = jar.remove(Cookie::from(JWT_COOKIE_NAME));
+    println!("After removal: {:?}", jar);
 
     (jar, Ok(StatusCode::OK))
 }

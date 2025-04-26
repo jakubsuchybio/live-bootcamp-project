@@ -105,14 +105,11 @@ async fn protected(jar: CookieJar, Extension(prefix): Extension<String>) -> impl
     };
 
     match response.status() {
-        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::BAD_REQUEST => {
-            StatusCode::UNAUTHORIZED.into_response()
-        }
         reqwest::StatusCode::OK => Json(ProtectedRouteResponse {
             img_url: "https://i.ibb.co/YP90j68/Light-Live-Bootcamp-Certificate.png".to_owned(),
         })
         .into_response(),
-        _ => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        _ => response.status().into_response(),
     }
 }
 
