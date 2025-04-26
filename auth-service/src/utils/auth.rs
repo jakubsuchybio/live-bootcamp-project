@@ -3,7 +3,7 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::domain::email::Email;
+use crate::{app_state::BannedTokenStoreType, domain::email::Email};
 
 use super::constants::JWT_COOKIE_NAME;
 
@@ -23,7 +23,17 @@ pub struct Claims {
 }
 
 // Check if JWT auth token is valid by decoding it using the JWT secret
-pub async fn validate_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+pub async fn validate_token(
+    token: &str,
+    banned_token_store: BannedTokenStoreType,
+) -> Result<Claims, jsonwebtoken::errors::Error> {
+    let banned_token_store = banned_token_store.read().await;
+    if banned_token_store.check_banned_token(token).await {
+        return Err(jsonwebtoken::errors::Error::from(
+            jsonwebtoken::errors::ErrorKind::InvalidToken,
+        ));
+    }
+
     decode::<Claims>(
         token,
         &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
@@ -86,6 +96,12 @@ fn create_auth_cookie(token: String) -> Cookie<'static> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use tokio::sync::RwLock;
+
+    use crate::HashSetBannedTokenStore;
+
     use super::*;
 
     #[tokio::test]
@@ -137,9 +153,10 @@ mod tests {
         // Arrange
         let email = Email::parse("test@example.com").unwrap();
         let token = generate_auth_token(&email).unwrap();
+        let banned_token_store = Arc::new(RwLock::new(HashSetBannedTokenStore::default()));
 
         // Act
-        let result = validate_token(&token).await.unwrap();
+        let result = validate_token(&token, banned_token_store).await.unwrap();
 
         let exp = Utc::now()
             .checked_add_signed(chrono::Duration::try_minutes(9).expect("valid duration"))
@@ -155,9 +172,9 @@ mod tests {
     async fn test_validate_token_with_invalid_token() {
         // Arrange
         let token = "invalid_token".to_owned();
-
+        let banned_token_store = Arc::new(RwLock::new(HashSetBannedTokenStore::default()));
         // Act
-        let result = validate_token(&token).await;
+        let result = validate_token(&token, banned_token_store).await;
 
         // Assert
         assert!(result.is_err());

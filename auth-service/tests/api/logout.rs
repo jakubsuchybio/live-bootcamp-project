@@ -1,4 +1,4 @@
-use auth_service::utils::constants::JWT_COOKIE_NAME;
+use auth_service::{domain::BannedTokenStore, utils::constants::JWT_COOKIE_NAME};
 use reqwest::Url;
 
 use crate::helpers::{get_random_email, TestApp};
@@ -23,6 +23,13 @@ async fn should_return_200_if_valid_jwt_cookie() {
         }))
         .await;
 
+    let banned_token = login_response
+        .cookies()
+        .find(|c| c.name() == JWT_COOKIE_NAME)
+        .unwrap()
+        .value()
+        .to_owned();
+
     // Act
     let logout_response = app.post_logout().await;
 
@@ -30,6 +37,9 @@ async fn should_return_200_if_valid_jwt_cookie() {
     assert_eq!(signup_response.status().as_u16(), 201);
     assert_eq!(login_response.status().as_u16(), 200);
     assert_eq!(logout_response.status().as_u16(), 200);
+
+    let banned_token_store = app.banned_token_store.read().await;
+    assert!(banned_token_store.check_banned_token(&banned_token).await);
 }
 
 #[tokio::test]

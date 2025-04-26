@@ -1,14 +1,22 @@
 use crate::domain::{Email, Password, User, UserStore, UserStoreError};
-use std::collections::HashMap;
 use async_trait::async_trait;
+use std::collections::HashMap;
 
 #[derive(Default)]
-pub struct HashmapUserStore {
-    pub users: HashMap<Email, User>,
+pub struct HashMapUserStore {
+    users: HashMap<Email, User>,
+}
+
+impl HashMapUserStore {
+    pub fn new() -> Self {
+        Self {
+            users: HashMap::new(),
+        }
+    }
 }
 
 #[async_trait]
-impl UserStore for HashmapUserStore {
+impl UserStore for HashMapUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         if self.users.contains_key(&user.email) {
             Err(UserStoreError::UserAlreadyExists)
@@ -52,7 +60,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_user_ok() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),
@@ -69,7 +77,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_user_already_exists() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),
@@ -87,7 +95,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_ok() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),
@@ -105,7 +113,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_not_found() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),
@@ -123,7 +131,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_user_ok() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),
@@ -141,7 +149,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_user_invalid_credentials() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),
@@ -160,7 +168,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_user_not_found() {
         // Arrange
-        let mut store = HashmapUserStore::default();
+        let mut store = HashMapUserStore::default();
         let user = User::new(
             Email::parse("test@example.com").unwrap(),
             Password::parse("password").unwrap(),

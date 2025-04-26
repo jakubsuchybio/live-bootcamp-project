@@ -1,4 +1,6 @@
-use auth_service::{utils::constants::test, AppState, Application, HashmapUserStore};
+use auth_service::{
+    utils::constants::test, AppState, Application, HashMapUserStore, HashSetBannedTokenStore,
+};
 use reqwest::cookie::Jar;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -8,6 +10,7 @@ pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>,
     pub http_client: reqwest::Client,
+    pub banned_token_store: Arc<RwLock<HashSetBannedTokenStore>>,
 }
 
 pub fn get_random_email() -> String {
@@ -16,11 +19,11 @@ pub fn get_random_email() -> String {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let user_store = HashmapUserStore {
-            ..Default::default()
-        };
+        let user_store = HashMapUserStore::new();
+        let banned_token_store = Arc::from(RwLock::from(HashSetBannedTokenStore::new()));
         let app_state = AppState {
             user_store: Arc::from(RwLock::from(user_store)),
+            banned_token_store: banned_token_store.clone(),
         };
         let app = Application::build(app_state, test::APP_ADDRESS)
             .await
@@ -44,6 +47,7 @@ impl TestApp {
             address,
             cookie_jar,
             http_client,
+            banned_token_store: banned_token_store.clone(),
         }
     }
 

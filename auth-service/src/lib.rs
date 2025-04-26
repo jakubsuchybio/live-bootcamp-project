@@ -20,7 +20,7 @@ use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
 pub use app_state::AppState;
-pub use services::HashmapUserStore;
+pub use services::{HashMapUserStore, HashSetBannedTokenStore};
 
 #[derive(Template)]
 #[template(path = "index.html")]
