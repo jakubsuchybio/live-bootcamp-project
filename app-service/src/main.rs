@@ -92,16 +92,16 @@ async fn protected(jar: CookieJar, Extension(prefix): Extension<String>) -> impl
     });
 
     let verify_token_link = get_auth_address(&prefix, "/verify-token");
-    let response = match api_client
+    let verify_token_response = api_client
         .post(&verify_token_link)
         .json(&verify_token_body)
         .send()
-        .await
-    {
-        Ok(response) => response,
-        Err(_) => {
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
+        .await;
+
+    println!("verify-token response: {:?}", verify_token_response);
+
+    let Ok(response) = verify_token_response else {
+        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     };
 
     match response.status() {
