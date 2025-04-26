@@ -1,6 +1,5 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
-use axum_extra::extract::{cookie, cookie::Cookie, CookieJar};
-use std::time::Duration;
+use axum_extra::extract::CookieJar;
 
 use crate::{
     domain::AuthAPIError,
@@ -14,12 +13,12 @@ pub async fn logout(
     jar: CookieJar,
 ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
     // Retrieve JWT cookie from the `CookieJar`
-    let Some(cookie2) = jar.get(JWT_COOKIE_NAME) else {
+    let Some(cookie) = jar.get(JWT_COOKIE_NAME) else {
         return (jar, Err(AuthAPIError::MissingToken));
     };
 
     // Validate JWT
-    let token = cookie2.value().to_owned();
+    let token = cookie.value().to_owned();
     let Ok(_claims) = validate_token(&token, state.banned_token_store.clone()).await else {
         return (jar, Err(AuthAPIError::InvalidToken));
     };
@@ -29,7 +28,7 @@ pub async fn logout(
 
     println!("Before removal: {:?}", jar);
     // Delete JWT cookie from the `CookieJar`
-    let mut cloned_cookie = cookie2.clone();
+    let mut cloned_cookie = cookie.clone();
     cloned_cookie.make_removal();
 
     let jar = jar.remove(cloned_cookie);

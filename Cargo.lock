@@ -127,7 +127,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "time",
  "tokio",
  "tower-http",
  "uuid",
