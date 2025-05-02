@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension};
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 
@@ -9,7 +9,6 @@ use crate::{
 };
 
 pub async fn logout(
-    Extension(prefix): Extension<String>,
     State(state): State<AppState>,
     jar: CookieJar,
 ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
