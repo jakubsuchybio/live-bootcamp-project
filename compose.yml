@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app-service:
     image: biosek/app-service:${TAG:-latest} # use versioned tags with fallback to latest
