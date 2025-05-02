@@ -13,22 +13,26 @@ use axum_extra::extract::CookieJar;
 use serde::Serialize;
 use tower_http::services::ServeDir;
 
-fn get_auth_address(prefix: &str, path: &str) -> String {
-    let address = match env::var("AUTH_SERVICE_IP") {
+fn get_auth_address(prefix: &str, path: &str, ipc: bool) -> String {
+    let mut address = match env::var("AUTH_SERVICE_IP") {
         Err(_) => "localhost".to_owned(),
         Ok(addr) if addr.is_empty() => "localhost".to_owned(),
         Ok(addr) => addr,
     };
 
+    if ipc {
+        address = "auth-service".to_string();
+    }
+
     // Determine protocol based on host - use http for localhost, https for others (production)
-    let protocol = if address == "localhost" {
-        "http://"
+    let (protocol, suffix) = if prefix.is_empty() {
+        ("http://", ":3000")
     } else {
-        "https://"
+        ("https://", "/auth")
     };
 
     // Always use the path with prefix
-    format!("{}{}/auth{}", protocol, address, path)
+    format!("{}{}{}{}", protocol, address, suffix, path)
 }
 
 #[tokio::main]
@@ -43,11 +47,11 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
 
     println!("listening on {}", listener.local_addr().unwrap());
-    
+
     // Set up graceful shutdown
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
     let server = axum::serve(listener, app);
-    
+
     // Handle both SIGINT (Ctrl+C) and SIGTERM (Docker stop)
     tokio::spawn(async move {
         let ctrl_c = async {
@@ -77,12 +81,15 @@ async fn main() {
     });
 
     // Start server with graceful shutdown
-    if let Err(e) = server.with_graceful_shutdown(async {
-        let _ = rx.await;
-    }).await {
+    if let Err(e) = server
+        .with_graceful_shutdown(async {
+            let _ = rx.await;
+        })
+        .await
+    {
         eprintln!("Server error: {}", e);
     }
-    
+
     println!("Server shutdown complete");
 }
 
@@ -108,8 +115,8 @@ struct IndexTemplate {
 }
 
 async fn root(Extension(prefix): Extension<String>) -> impl IntoResponse {
-    let login_link = get_auth_address(&prefix, "");
-    let logout_link = get_auth_address(&prefix, "/logout");
+    let login_link = get_auth_address(&prefix, "", false);
+    let logout_link = get_auth_address(&prefix, "/logout", false);
 
     let template = IndexTemplate {
         login_link,
@@ -133,7 +140,7 @@ async fn protected(jar: CookieJar, Extension(prefix): Extension<String>) -> impl
         "token": &jwt_cookie.value(),
     });
 
-    let verify_token_link = get_auth_address(&prefix, "/verify-token");
+    let verify_token_link = get_auth_address(&prefix, "/verify-token", true);
     let verify_token_response = api_client
         .post(&verify_token_link)
         .json(&verify_token_body)

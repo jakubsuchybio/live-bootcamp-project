@@ -47,7 +47,6 @@ impl Application {
         let allowed_origins = [
             "http://localhost:8000".parse()?,
             "http://127.0.0.1:8000".parse()?,
-            "https://live-bootcamp.biosek.cz/app".parse()?,
             "https://live-bootcamp.biosek.cz/auth".parse()?,
         ];
 
@@ -81,10 +80,10 @@ impl Application {
 
     pub async fn run(self) -> Result<(), std::io::Error> {
         println!("listening on {}", &self.address);
-        
+
         // Set up graceful shutdown
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-        
+
         // Handle both SIGINT (Ctrl+C) and SIGTERM (Docker stop)
         tokio::spawn(async move {
             let ctrl_c = async {
@@ -114,10 +113,13 @@ impl Application {
         });
 
         // Start server with graceful shutdown
-        let result = self.server.with_graceful_shutdown(async {
-            let _ = rx.await;
-        }).await;
-        
+        let result = self
+            .server
+            .with_graceful_shutdown(async {
+                let _ = rx.await;
+            })
+            .await;
+
         println!("Server shutdown complete");
         result
     }
