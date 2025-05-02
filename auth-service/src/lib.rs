@@ -81,7 +81,45 @@ impl Application {
 
     pub async fn run(self) -> Result<(), std::io::Error> {
         println!("listening on {}", &self.address);
-        self.server.await
+        
+        // Set up graceful shutdown
+        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+        
+        // Handle both SIGINT (Ctrl+C) and SIGTERM (Docker stop)
+        tokio::spawn(async move {
+            let ctrl_c = async {
+                tokio::signal::ctrl_c()
+                    .await
+                    .expect("Failed to install Ctrl+C handler");
+            };
+
+            #[cfg(unix)]
+            let terminate = async {
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                    .expect("Failed to install SIGTERM handler")
+                    .recv()
+                    .await;
+            };
+
+            #[cfg(not(unix))]
+            let terminate = std::future::pending::<()>();
+
+            tokio::select! {
+                _ = ctrl_c => {},
+                _ = terminate => {},
+            }
+
+            println!("Received shutdown signal, shutting down gracefully...");
+            let _ = tx.send(());
+        });
+
+        // Start server with graceful shutdown
+        let result = self.server.with_graceful_shutdown(async {
+            let _ = rx.await;
+        }).await;
+        
+        println!("Server shutdown complete");
+        result
     }
 }
 

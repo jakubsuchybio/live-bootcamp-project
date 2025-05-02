@@ -1,7 +1,12 @@
+version: '3.8'
+
 services:
   app-service:
     image: biosek/app-service:${TAG:-latest} # use versioned tags with fallback to latest
     restart: "always" # automatically restart container when server crashes
+    stop_signal: SIGINT # Use SIGINT instead of SIGTERM for quicker shutdown
+    stop_grace_period: 1s # reduce shutdown wait time
+    init: true # use init process for handling signals
     environment: # set up environment variables
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
     # No direct port exposure as Nginx will handle external access
@@ -20,6 +25,9 @@ services:
   auth-service:
     image: biosek/auth-service:${TAG:-latest}
     restart: "always" # automatically restart container when server crashes
+    stop_signal: SIGINT # Use SIGINT instead of SIGTERM for quicker shutdown
+    stop_grace_period: 1s # reduce shutdown wait time
+    init: true # use init process for handling signals
     # No direct port exposure as Nginx will handle external access
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -36,7 +44,7 @@ services:
     image: nginx:alpine
     restart: always
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/conf.d/prod.conf:/etc/nginx/conf.d/default.conf
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     ports:

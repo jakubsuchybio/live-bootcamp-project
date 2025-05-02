@@ -2,12 +2,21 @@ services:
   app-service:
     build:
       context: ./app-service # specify directory where local Dockerfile is located
+    networks:
+      - web
   auth-service:
     build:
       context: ./auth-service # specify directory where local Dockerfile is located
+    networks:
+      - web
   nginx:
     volumes:
       - ./nginx/conf.d/local.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - web
   certbot:
     profiles:
       - donotstart # this prevents the service from starting by default
+networks:
+  web:
+    # Network is now managed by Docker Compose

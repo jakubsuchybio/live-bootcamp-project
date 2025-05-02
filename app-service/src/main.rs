@@ -43,7 +43,47 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
 
     println!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    
+    // Set up graceful shutdown
+    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+    let server = axum::serve(listener, app);
+    
+    // Handle both SIGINT (Ctrl+C) and SIGTERM (Docker stop)
+    tokio::spawn(async move {
+        let ctrl_c = async {
+            tokio::signal::ctrl_c()
+                .await
+                .expect("Failed to install Ctrl+C handler");
+        };
+
+        #[cfg(unix)]
+        let terminate = async {
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("Failed to install SIGTERM handler")
+                .recv()
+                .await;
+        };
+
+        #[cfg(not(unix))]
+        let terminate = std::future::pending::<()>();
+
+        tokio::select! {
+            _ = ctrl_c => {},
+            _ = terminate => {},
+        }
+
+        println!("Received shutdown signal, shutting down gracefully...");
+        let _ = tx.send(());
+    });
+
+    // Start server with graceful shutdown
+    if let Err(e) = server.with_graceful_shutdown(async {
+        let _ = rx.await;
+    }).await {
+        eprintln!("Server error: {}", e);
+    }
+    
+    println!("Server shutdown complete");
 }
 
 // New middleware to handle the prefix
