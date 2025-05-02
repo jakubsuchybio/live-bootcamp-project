@@ -2,6 +2,16 @@ services:
   app-service:
     build:
       context: ./app-service # specify directory where local Dockerfile is located
+    ports:
+      - "8000:8000" # expose app-service directly
   auth-service:
     build:
       context: ./auth-service # specify directory where local Dockerfile is located
+    ports:
+      - "3000:3000" # expose auth-service directly
+  nginx:
+    profiles:
+      - donotstart # this prevents the service from starting by default
+  certbot:
+    profiles:
+      - donotstart # this prevents the service from starting by default
