@@ -20,13 +20,15 @@ fn get_auth_address(prefix: &str, path: &str) -> String {
         Ok(addr) => addr,
     };
 
-    let (security, port) = if prefix.is_empty() {
-        ("http://", ":3000")
+    // Determine protocol based on host - use http for localhost, https for others (production)
+    let protocol = if address == "localhost" {
+        "http://"
     } else {
-        ("https://", "/auth")
+        "https://"
     };
 
-    format!("{security}{address}{port}{path}")
+    // Always use the path with prefix
+    format!("{}{}/auth{}", protocol, address, path)
 }
 
 #[tokio::main]
