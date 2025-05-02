@@ -20,7 +20,7 @@ fn get_auth_address(prefix: &str, path: &str, ipc: bool) -> String {
         Ok(addr) => addr,
     };
 
-    if ipc {
+    if address == "localhost" && ipc {
         address = "auth-service".to_string();
     }
 
