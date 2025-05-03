@@ -1,5 +1,6 @@
 mod data_stores;
 mod email;
+mod email_client;
 mod error;
 mod login_attempt_id;
 mod password;
@@ -9,6 +10,7 @@ mod user;
 // re-export items from sub-modules
 pub use data_stores::*;
 pub use email::*;
+pub use email_client::*;
 pub use error::*;
 pub use login_attempt_id::*;
 pub use password::*;

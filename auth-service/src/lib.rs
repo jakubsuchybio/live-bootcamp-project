@@ -19,10 +19,12 @@ use routes::{login, logout, signup, verify_2fa, verify_token};
 use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-pub use app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType};
+pub use app_state::{AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType};
 pub use domain::{Email, ErrorResponse};
 pub use routes::TwoFactorAuthResponse;
-pub use services::{HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore};
+pub use services::{
+    HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
+};
 pub use utils::constants::{prod, test};
 pub use utils::JWT_COOKIE_NAME;
 

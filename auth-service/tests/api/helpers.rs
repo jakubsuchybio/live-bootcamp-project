@@ -1,6 +1,6 @@
 use auth_service::{
-    test, AppState, Application, BannedTokenStoreType, HashMapTwoFACodeStore, HashMapUserStore,
-    HashSetBannedTokenStore, TwoFACodeStoreType,
+    test, AppState, Application, BannedTokenStoreType, EmailClientType, HashMapTwoFACodeStore,
+    HashMapUserStore, HashSetBannedTokenStore, MockEmailClient, TwoFACodeStoreType,
 };
 use reqwest::cookie::Jar;
 use std::sync::Arc;
@@ -13,6 +13,7 @@ pub struct TestApp {
     pub http_client: reqwest::Client,
     pub banned_token_store: BannedTokenStoreType,
     pub two_fa_code_store: TwoFACodeStoreType,
+    pub email_client: EmailClientType,
 }
 
 pub fn get_random_email() -> String {
@@ -24,10 +25,12 @@ impl TestApp {
         let user_store = Arc::from(RwLock::from(HashMapUserStore::new()));
         let banned_token_store = Arc::from(RwLock::from(HashSetBannedTokenStore::new()));
         let two_fa_code_store = Arc::new(RwLock::new(HashMapTwoFACodeStore::default()));
+        let email_client = Arc::new(RwLock::new(MockEmailClient {}));
         let app_state = AppState {
             user_store: user_store.clone(),
             banned_token_store: banned_token_store.clone(),
             two_fa_code_store: two_fa_code_store.clone(),
+            email_client: email_client.clone(),
         };
         let app = Application::build(app_state, test::APP_ADDRESS)
             .await
@@ -53,6 +56,7 @@ impl TestApp {
             http_client,
             banned_token_store,
             two_fa_code_store,
+            email_client,
         }
     }
 
