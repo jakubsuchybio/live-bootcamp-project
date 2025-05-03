@@ -1,0 +1,77 @@
+use uuid::Uuid;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginAttemptId(String);
+
+impl LoginAttemptId {
+    pub fn parse(id: String) -> Result<Self, String> {
+        match Uuid::parse_str(&id) {
+            Err(e) => Err(e.to_string()),
+            Ok(uuid) => Ok(LoginAttemptId(uuid.to_string())),
+        }
+    }
+}
+
+impl Default for LoginAttemptId {
+    fn default() -> Self {
+        LoginAttemptId(Uuid::new_v4().to_string())
+    }
+}
+
+impl AsRef<str> for LoginAttemptId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_login_attempt_id_parse_valid_uuid() {
+        // Arrange
+        let valid_uuid = Uuid::new_v4().to_string();
+
+        // Act
+        let result = LoginAttemptId::parse(valid_uuid.clone());
+
+        // Assert
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().0, valid_uuid);
+    }
+
+    #[test]
+    fn test_login_attempt_id_parse_invalid_uuid() {
+        // Arrange
+        let invalid_uuid = "not-a-uuid".to_string();
+
+        // Act
+        let result = LoginAttemptId::parse(invalid_uuid);
+
+        // Assert
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_login_attempt_id_default() {
+        // Arrange & Act
+        let id = LoginAttemptId::default();
+
+        // Assert
+        assert!(Uuid::parse_str(&id.0).is_ok());
+    }
+
+    #[test]
+    fn test_login_attempt_id_as_ref() {
+        // Arrange
+        let uuid_str = Uuid::new_v4().to_string();
+        let id = LoginAttemptId(uuid_str.clone());
+
+        // Act
+        let result = id.as_ref();
+
+        // Assert
+        assert_eq!(result, uuid_str);
+    }
+}

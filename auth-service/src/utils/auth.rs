@@ -3,7 +3,8 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::{app_state::BannedTokenStoreType, domain::email::Email};
+use crate::app_state::BannedTokenStoreType;
+use crate::domain::Email;
 
 use super::constants::JWT_COOKIE_NAME;
 
@@ -44,7 +45,7 @@ pub async fn validate_token(
 
 #[derive(Debug)]
 pub enum GenerateTokenError {
-    TokenError(jsonwebtoken::errors::Error),
+    TokenError,
     UnexpectedError,
 }
 
@@ -71,7 +72,7 @@ fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
 
     let claims = Claims { sub, exp };
 
-    create_token(&claims).map_err(GenerateTokenError::TokenError)
+    create_token(&claims).map_err(|_| GenerateTokenError::TokenError)
 }
 
 // Create JWT auth token by encoding claims using the JWT secret

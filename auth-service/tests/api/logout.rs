@@ -1,4 +1,4 @@
-use auth_service::{domain::BannedTokenStore, utils::constants::JWT_COOKIE_NAME};
+use auth_service::JWT_COOKIE_NAME;
 use reqwest::Url;
 
 use crate::helpers::{get_random_email, TestApp};
@@ -12,7 +12,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
         .post_signup(&serde_json::json!({
             "email": random_email,
             "password": "password123",
-            "requires2FA": true
+            "requires2FA": false
         }))
         .await;
 
@@ -51,7 +51,7 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
         .post_signup(&serde_json::json!({
             "email": random_email,
             "password": "password123",
-            "requires2FA": true
+            "requires2FA": false
         }))
         .await;
 

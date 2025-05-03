@@ -1,9 +1,9 @@
 mod app_state;
 mod services;
 
-pub mod domain;
-pub mod routes;
-pub mod utils;
+mod domain;
+mod routes;
+mod utils;
 
 use askama::Template;
 use axum::{
@@ -19,8 +19,12 @@ use routes::{login, logout, signup, verify_2fa, verify_token};
 use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-pub use app_state::AppState;
-pub use services::{HashMapUserStore, HashSetBannedTokenStore};
+pub use app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType};
+pub use domain::ErrorResponse;
+pub use routes::TwoFactorAuthResponse;
+pub use services::{HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore};
+pub use utils::constants::{prod, test};
+pub use utils::JWT_COOKIE_NAME;
 
 #[derive(Template)]
 #[template(path = "index.html")]

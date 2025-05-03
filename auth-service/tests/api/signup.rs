@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::domain::ErrorResponse;
+use auth_service::ErrorResponse;
 use rstest::rstest;
 
 #[tokio::test]

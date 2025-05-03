@@ -1,5 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::{domain::BannedTokenStore, utils::constants::JWT_COOKIE_NAME};
+use auth_service::JWT_COOKIE_NAME;
 use rstest::rstest;
 
 #[tokio::test]
