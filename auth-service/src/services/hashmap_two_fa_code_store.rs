@@ -24,14 +24,10 @@ impl TwoFACodeStore for HashMapTwoFACodeStore {
         login_attempt_id: LoginAttemptId,
         code: TwoFACode,
     ) -> Result<(), TwoFACodeStoreError> {
-        // Add the new code entry to the HashMap
-        if self.codes.contains_key(&email) {
-            Err(TwoFACodeStoreError::UnexpectedError)
-        } else {
-            self.codes.insert(email, (login_attempt_id, code));
-            Ok(())
-        }
+        self.codes.insert(email, (login_attempt_id, code));
+        Ok(())
     }
+
     async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError> {
         // Remove the code entry and return an error if it doesn't exist
         if let Some(_) = self.codes.remove(email) {
@@ -40,6 +36,7 @@ impl TwoFACodeStore for HashMapTwoFACodeStore {
             Err(TwoFACodeStoreError::LoginAttemptIdNotFound)
         }
     }
+
     async fn get_code(
         &self,
         email: &Email,
@@ -73,26 +70,6 @@ mod tests {
         assert!(result.is_ok());
         let stored = store.codes.get(&email).unwrap();
         assert_eq!(stored.1, code);
-    }
-
-    #[tokio::test]
-    async fn test_add_code_returns_error_when_email_exists() {
-        // Arrange
-        let mut store = HashMapTwoFACodeStore::default();
-        let email = Email::parse("test@example.com").unwrap();
-        let login_attempt_id = LoginAttemptId::default();
-        let code = TwoFACode::parse("123456").unwrap();
-
-        // Add code first time
-        let _ = store
-            .add_code(email.clone(), login_attempt_id.clone(), code.clone())
-            .await;
-
-        // Act
-        let result = store.add_code(email, login_attempt_id, code).await;
-
-        // Assert
-        assert!(matches!(result, Err(TwoFACodeStoreError::UnexpectedError)));
     }
 
     #[tokio::test]
