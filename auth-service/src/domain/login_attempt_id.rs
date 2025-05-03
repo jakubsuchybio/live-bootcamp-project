@@ -4,8 +4,8 @@ use uuid::Uuid;
 pub struct LoginAttemptId(String);
 
 impl LoginAttemptId {
-    pub fn parse(id: String) -> Result<Self, String> {
-        match Uuid::parse_str(&id) {
+    pub fn parse(id: &str) -> Result<Self, String> {
+        match Uuid::parse_str(id) {
             Err(e) => Err(e.to_string()),
             Ok(uuid) => Ok(LoginAttemptId(uuid.to_string())),
         }
@@ -34,7 +34,7 @@ mod tests {
         let valid_uuid = Uuid::new_v4().to_string();
 
         // Act
-        let result = LoginAttemptId::parse(valid_uuid.clone());
+        let result = LoginAttemptId::parse(&valid_uuid);
 
         // Assert
         assert!(result.is_ok());
@@ -44,7 +44,7 @@ mod tests {
     #[test]
     fn test_login_attempt_id_parse_invalid_uuid() {
         // Arrange
-        let invalid_uuid = "not-a-uuid".to_string();
+        let invalid_uuid = "not-a-uuid";
 
         // Act
         let result = LoginAttemptId::parse(invalid_uuid);

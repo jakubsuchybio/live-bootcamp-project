@@ -20,7 +20,7 @@ use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
 pub use app_state::{AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType};
-pub use domain::{Email, ErrorResponse};
+pub use domain::{Email, ErrorResponse, LoginAttemptId, TwoFACode};
 pub use routes::TwoFactorAuthResponse;
 pub use services::{
     HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
