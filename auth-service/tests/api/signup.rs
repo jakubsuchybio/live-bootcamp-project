@@ -1,24 +1,19 @@
-use crate::helpers::{get_random_email, TestApp};
-use auth_service::ErrorResponse;
+use crate::helpers_arrange::TestUser;
+use crate::helpers_assert::{assert_error_message, assert_status};
+use crate::helpers_harness::TestApp;
 use rstest::rstest;
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
     // Arrange
     let app = TestApp::new().await;
-    let random_email = get_random_email();
+    let user = TestUser::new();
 
     // Act
-    let response = app
-        .post_signup(&serde_json::json!({
-            "email": random_email,
-            "password": "password123",
-            "requires2FA": true
-        }))
-        .await;
+    let response = app.post_signup(&user.signup_payload()).await;
 
     // Assert
-    assert_eq!(response.status().as_u16(), 201);
+    assert_status(&response, 201, None);
 }
 
 #[rstest]
@@ -46,61 +41,28 @@ async fn should_return_400_if_invalid_input(#[case] request: serde_json::Value) 
     let response = app.post_signup(&request).await;
 
     // Assert
-    assert_eq!(
-        response.status().as_u16(),
+    assert_status(
+        &response,
         400,
-        "Failed for request: {:?}",
-        request
+        Some(&format!("Failed for request: {:?}", request)),
     );
-    assert_eq!(
-        response
-            .json::<ErrorResponse>()
-            .await
-            .expect("Could not deserialize response body to ErrorResponse")
-            .error,
-        "Invalid credentials".to_owned()
-    );
+    assert_error_message(response, "Invalid credentials").await;
 }
 
 #[tokio::test]
 async fn should_return_409_if_email_already_exists() {
     // Arrange
     let app = TestApp::new().await;
-    let random_email = get_random_email();
+    let user = TestUser::new();
 
     // Act
-    // First signup
-    let first_response = app
-        .post_signup(&serde_json::json!({
-            "email": random_email,
-            "password": "password123",
-            "requires2FA": true
-        }))
-        .await;
-
-    // Second signup with same email
-    let second_response = app
-        .post_signup(&serde_json::json!({
-            "email": random_email,
-            "password": "password123",
-            "requires2FA": true
-        }))
-        .await;
+    let first_response = app.post_signup(&user.signup_payload()).await;
+    let second_response = app.post_signup(&user.signup_payload()).await;
 
     // Assert
-    // First signup successful
-    assert_eq!(first_response.status().as_u16(), 201);
-    // Second signup fails with conflict
-    assert_eq!(second_response.status().as_u16(), 409);
-
-    assert_eq!(
-        second_response
-            .json::<ErrorResponse>()
-            .await
-            .expect("Could not deserialize response body to ErrorResponse")
-            .error,
-        "User already exists".to_owned()
-    )
+    assert_status(&first_response, 201, None);
+    assert_status(&second_response, 409, None);
+    assert_error_message(second_response, "User already exists").await;
 }
 
 #[rstest]
@@ -125,10 +87,9 @@ async fn should_return_422_if_malformed_input(#[case] test_case: serde_json::Val
     let response = app.post_signup(&test_case).await;
 
     // Assert
-    assert_eq!(
-        response.status().as_u16(),
+    assert_status(
+        &response,
         422,
-        "Failed for input: {:?}",
-        test_case
+        Some(&format!("Failed for input: {:?}", test_case)),
     );
 }
