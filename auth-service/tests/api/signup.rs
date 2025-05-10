@@ -1,12 +1,13 @@
 use crate::helpers_arrange::TestUser;
 use crate::helpers_assert::{assert_error_message, assert_status};
 use crate::helpers_harness::TestApp;
+use db_test_macro::db_test;
 use rstest::rstest;
 
-#[tokio::test]
+#[db_test]
 async fn should_return_201_if_valid_input() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = TestUser::new();
 
     // Act
@@ -16,6 +17,7 @@ async fn should_return_201_if_valid_input() {
     assert_status(&response, 201, None);
 }
 
+#[db_test]
 #[rstest]
 #[case::empty_email(serde_json::json!({
             "email": "",
@@ -32,10 +34,9 @@ async fn should_return_201_if_valid_input() {
             "password": "123",
             "requires2FA": true
         }))]
-#[tokio::test]
 async fn should_return_400_if_invalid_input(#[case] request: serde_json::Value) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // Act
     let response = app.post_signup(&request).await;
@@ -49,10 +50,10 @@ async fn should_return_400_if_invalid_input(#[case] request: serde_json::Value) 
     assert_error_message(response, "Invalid credentials").await;
 }
 
-#[tokio::test]
+#[db_test]
 async fn should_return_409_if_email_already_exists() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = TestUser::new();
 
     // Act
@@ -65,6 +66,7 @@ async fn should_return_409_if_email_already_exists() {
     assert_error_message(second_response, "User already exists").await;
 }
 
+#[db_test]
 #[rstest]
 #[case::missing_email_field(serde_json::json!({
             "password": "password123",
@@ -78,10 +80,9 @@ async fn should_return_409_if_email_already_exists() {
             "email": "test@example.com",
             "password": "password123"
         }))]
-#[tokio::test]
 async fn should_return_422_if_malformed_input(#[case] test_case: serde_json::Value) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // Act
     let response = app.post_signup(&test_case).await;

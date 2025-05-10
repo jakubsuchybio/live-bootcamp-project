@@ -7,3 +7,5 @@ pub mod root;
 pub mod signup;
 pub mod verify_2fa;
 pub mod verify_token;
+
+pub use db_test_macro::db_test;

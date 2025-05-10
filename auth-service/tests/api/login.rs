@@ -2,12 +2,13 @@ use crate::helpers_arrange::{get_2fa_code_tuple, setup_registered_user, TestUser
 use crate::helpers_assert::{assert_has_auth_cookie, assert_status};
 use crate::helpers_harness::TestApp;
 use auth_service::TwoFactorAuthResponse;
+use db_test_macro::db_test;
 use rstest::rstest;
 
-#[tokio::test]
+#[db_test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = TestUser::new();
     setup_registered_user(&app, &user).await;
 
@@ -19,10 +20,10 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     assert_has_auth_cookie(&response);
 }
 
-#[tokio::test]
+#[db_test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = TestUser::new_with_2fa();
     setup_registered_user(&app, &user).await;
 
@@ -43,6 +44,7 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     assert_eq!(login_attempt_id, json_body.login_attempt_id);
 }
 
+#[db_test]
 #[rstest]
 #[case::email_not_containing_at(serde_json::json!({
             "email": "abc",
@@ -52,10 +54,9 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
             "email": "text@example.com",
             "password": "123",
         }))]
-#[tokio::test]
 async fn should_return_400_if_invalid_input(#[case] test_case: serde_json::Value) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // Act
     let response = app.post_login(&test_case).await;
@@ -68,10 +69,10 @@ async fn should_return_400_if_invalid_input(#[case] test_case: serde_json::Value
     );
 }
 
-#[tokio::test]
+#[db_test]
 async fn should_return_401_if_email_not_registered() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = TestUser::new();
     setup_registered_user(&app, &user).await;
 
@@ -87,10 +88,10 @@ async fn should_return_401_if_email_not_registered() {
     assert_status(&response, 401, None);
 }
 
-#[tokio::test]
+#[db_test]
 async fn should_return_401_if_wrong_password() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let user = TestUser::new();
     setup_registered_user(&app, &user).await;
 
@@ -106,6 +107,7 @@ async fn should_return_401_if_wrong_password() {
     assert_status(&response, 401, None);
 }
 
+#[db_test]
 #[rstest]
 #[case::missing_email_field(serde_json::json!({
             "password": "password123",
@@ -113,10 +115,9 @@ async fn should_return_401_if_wrong_password() {
 #[case::missing_password_field(serde_json::json!({
             "email": "test@example.com",
         }))]
-#[tokio::test]
 async fn should_return_422_if_malformed_input(#[case] test_case: serde_json::Value) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // Act
     let response = app.post_login(&test_case).await;

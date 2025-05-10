@@ -1,12 +1,13 @@
 use crate::helpers_arrange::{create_2fa_payload, setup_2fa_login_started};
 use crate::helpers_assert::{assert_error_message, assert_has_auth_cookie, assert_status};
 use crate::helpers_harness::TestApp;
+use db_test_macro::db_test;
 use rstest::rstest;
 
-#[tokio::test]
+#[db_test]
 async fn should_return_200_if_correct_code() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let (user, two_fa_data) = setup_2fa_login_started(&app).await;
 
     // Act
@@ -19,6 +20,7 @@ async fn should_return_200_if_correct_code() {
     assert_has_auth_cookie(&response);
 }
 
+#[db_test]
 #[rstest]
 #[case::email_not_containing_at(serde_json::json!({
             "email": "abc",
@@ -35,10 +37,9 @@ async fn should_return_200_if_correct_code() {
             "loginAttemptId": "not-a-uuid",  // invalid UUID format
             "2FACode": "123456"
         }))]
-#[tokio::test]
 async fn should_return_400_if_invalid_input(#[case] test_case: serde_json::Value) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // Act
     let response = app.post_verify_2fa(&test_case).await;
@@ -59,6 +60,7 @@ struct InvalidCredentialTest {
     invalid_value: &'static str,
 }
 
+#[db_test]
 #[rstest]
 #[case::incorrect_email(InvalidCredentialTest {
     field_name: "email",
@@ -75,10 +77,9 @@ struct InvalidCredentialTest {
     json_field: "2FACode",
     invalid_value: "000000"
 })]
-#[tokio::test]
 async fn should_return_401_if_incorrect_credentials(#[case] test_case: InvalidCredentialTest) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let (user, two_fa_data) = setup_2fa_login_started(&app).await;
 
     // Create the base payload with valid values
@@ -106,10 +107,10 @@ async fn should_return_401_if_incorrect_credentials(#[case] test_case: InvalidCr
     assert_error_message(response, "Incorrect credentials").await;
 }
 
-#[tokio::test]
+#[db_test]
 async fn should_return_401_if_old_code() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let (user, first_2fa_data) = setup_2fa_login_started(&app).await;
 
     // Act
@@ -125,10 +126,10 @@ async fn should_return_401_if_old_code() {
     assert_status(&response, 401, None);
 }
 
-#[tokio::test]
+#[db_test]
 async fn should_return_401_if_same_code_twice() {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
     let (user, two_fa_data) = setup_2fa_login_started(&app).await;
 
     let request_body = create_2fa_payload(&user.email, &two_fa_data);
@@ -143,6 +144,7 @@ async fn should_return_401_if_same_code_twice() {
     assert_status(&second_response, 401, None);
 }
 
+#[db_test]
 #[rstest]
 #[case::empty_json(serde_json::json!({}))]
 #[case::missing_email(serde_json::json!({
@@ -162,10 +164,9 @@ async fn should_return_401_if_same_code_twice() {
             "loginAttemptId": "123e4567-e89b-12d3-a456-426614174000",
             "2FACode": "123456"
         }))]
-#[tokio::test]
 async fn should_return_422_if_malformed_input(#[case] test_case: serde_json::Value) {
     // Arrange
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // Act
     let response = app.post_verify_2fa(&test_case).await;
