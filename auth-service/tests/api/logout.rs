@@ -16,13 +16,13 @@ async fn should_return_200_if_valid_jwt_cookie() {
     // Assert
     assert_status(&response, 200, None);
 
-    assert!(
-        app.banned_token_store
-            .read()
-            .await
-            .check_banned_token(&token)
-            .await
-    );
+    assert!(app
+        .banned_token_store
+        .read()
+        .await
+        .check_banned_token(&token)
+        .await
+        .unwrap());
 }
 
 #[db_test]

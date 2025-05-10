@@ -15,6 +15,7 @@ use axum::{
     serve::Serve,
     Extension, Router,
 };
+use redis::{Client, RedisResult};
 use routes::{login, logout, signup, verify_2fa, verify_token};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::error::Error;
@@ -25,10 +26,10 @@ pub use domain::{Email, ErrorResponse, LoginAttemptId, TwoFACode};
 pub use routes::TwoFactorAuthResponse;
 pub use services::{
     HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
-    PostgresUserStore,
+    PostgresUserStore, RedisBannedTokenStore,
 };
 pub use utils::constants::{prod, test};
-pub use utils::{DATABASE_URL, JWT_COOKIE_NAME};
+pub use utils::{DATABASE_URL, JWT_COOKIE_NAME, REDIS_HOST_NAME};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -154,4 +155,16 @@ async fn health() -> impl IntoResponse {
 pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
     // Create a new PostgreSQL connection pool
     PgPoolOptions::new().max_connections(5).connect(url).await
+}
+
+pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
+    let redis_url = format!("redis://{}/", redis_hostname);
+    redis::Client::open(redis_url)
+}
+
+pub fn configure_redis() -> redis::Connection {
+    get_redis_client(REDIS_HOST_NAME.to_owned())
+        .expect("Failed to get Redis client")
+        .get_connection()
+        .expect("Failed to get Redis connection")
 }

@@ -10,8 +10,12 @@ pub trait UserStore {
 
 #[async_trait::async_trait]
 pub trait BannedTokenStore {
-    async fn add_banned_token(&mut self, token: String);
-    async fn check_banned_token(&self, token: &str) -> bool;
+    async fn add_banned_token(&mut self, token: String) -> Result<(), BannedTokenStoreError>;
+    async fn check_banned_token(&self, token: &str) -> Result<bool, BannedTokenStoreError>;
+}
+#[derive(Debug)]
+pub enum BannedTokenStoreError {
+    UnexpectedError,
 }
 
 #[derive(Debug, PartialEq)]

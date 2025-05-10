@@ -55,13 +55,13 @@ async fn should_return_401_if_token_is_banned() {
         .await;
 
     // Assert
-    assert!(
-        app.banned_token_store
-            .read()
-            .await
-            .check_banned_token(&token)
-            .await
-    );
+    assert!(app
+        .banned_token_store
+        .read()
+        .await
+        .check_banned_token(&token)
+        .await
+        .unwrap());
     assert_status(&response, 402, None);
 }
 

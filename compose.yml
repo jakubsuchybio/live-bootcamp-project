@@ -53,6 +53,14 @@ services:
     networks:
       - web
 
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - web
+
   nginx:
     image: nginx:alpine
     restart: always
