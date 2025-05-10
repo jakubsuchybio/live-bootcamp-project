@@ -26,7 +26,7 @@ pub use domain::{Email, ErrorResponse, LoginAttemptId, TwoFACode};
 pub use routes::TwoFactorAuthResponse;
 pub use services::{
     HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
-    PostgresUserStore, RedisBannedTokenStore,
+    PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore,
 };
 pub use utils::constants::{prod, test};
 pub use utils::{DATABASE_URL, JWT_COOKIE_NAME, REDIS_HOST_NAME};
