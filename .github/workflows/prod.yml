@@ -7,10 +7,29 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  SQLX_OFFLINE: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        # Docker Hub image
+        image: postgres:15.2-alpine
+        # Environment variables scoped only for the `postgres` element
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: postgres
+        # Opens tcp port 5432 on the host and service container
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
     steps:
       # Checkout code from the repository
       - name: Checkout code
@@ -43,6 +62,7 @@ jobs:
           export CARGO_INCREMENTAL=1
           export CARGO_NET_RETRY=10
           export JWT_SECRET=secret
+          export DATABASE_URL=postgres://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432
           RUSTFLAGS="-C target-cpu=native" cargo test --workspace --no-fail-fast --release
 
         # Set up Docker Buildx for multi-platform builds
@@ -105,6 +125,7 @@ jobs:
             cd ~
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
             export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
+            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             export TAG=${{ github.sha }}
 
             # If certificates don't exist yet, create dummy certs for initial setup
