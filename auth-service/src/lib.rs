@@ -16,6 +16,7 @@ use axum::{
     Extension, Router,
 };
 use routes::{login, logout, signup, verify_2fa, verify_token};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
@@ -26,7 +27,7 @@ pub use services::{
     HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
 };
 pub use utils::constants::{prod, test};
-pub use utils::JWT_COOKIE_NAME;
+pub use utils::{DATABASE_URL, JWT_COOKIE_NAME};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -147,4 +148,9 @@ async fn handle_prefix(mut request: Request, next: Next) -> Response {
 // Simple health check endpoint for container health monitoring
 async fn health() -> impl IntoResponse {
     StatusCode::OK
+}
+
+pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    // Create a new PostgreSQL connection pool
+    PgPoolOptions::new().max_connections(5).connect(url).await
 }

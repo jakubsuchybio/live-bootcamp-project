@@ -35,8 +35,21 @@ services:
       start_period: 10s
     environment:
       JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
+    depends_on:
+      - db
     networks:
       - web
+
+  db:
+    image: postgres:15.2-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
 
   nginx:
     image: nginx:alpine
@@ -67,3 +80,7 @@ services:
 networks:
   web:
     # Network is now managed by Docker Compose
+    #
+volumes:
+  db:
+    driver: local
