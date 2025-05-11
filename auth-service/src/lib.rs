@@ -19,7 +19,8 @@ use redis::{Client, RedisResult};
 use routes::{login, logout, signup, verify_2fa, verify_token};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::error::Error;
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
+use utils::{make_span_with_request_id, on_request, on_response};
 
 pub use app_state::{AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType};
 pub use domain::{Email, ErrorResponse, LoginAttemptId, TwoFACode};
@@ -78,7 +79,13 @@ impl Application {
             .route("/health", get(health))
             .with_state(app_state.clone())
             .layer(middleware::from_fn(handle_prefix))
-            .layer(cors);
+            .layer(cors)
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(make_span_with_request_id)
+                    .on_request(on_request)
+                    .on_response(on_response),
+            );
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();

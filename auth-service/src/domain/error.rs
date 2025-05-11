@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
 pub enum AuthAPIError {
     UserAlreadyExists,
     InvalidCredentials,
