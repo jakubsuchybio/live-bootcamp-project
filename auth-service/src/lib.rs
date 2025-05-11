@@ -29,6 +29,7 @@ pub use services::{
     PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore,
 };
 pub use utils::constants::{prod, test};
+pub use utils::init_tracing;
 pub use utils::{DATABASE_URL, JWT_COOKIE_NAME, REDIS_HOST_NAME};
 
 #[derive(Template)]
@@ -88,7 +89,7 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
-        println!("listening on {}", &self.address);
+        tracing::info!("listening on {}", &self.address);
 
         // Set up graceful shutdown
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
