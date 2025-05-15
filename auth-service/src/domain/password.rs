@@ -1,8 +1,11 @@
+use thiserror::Error;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Password(String);
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum PasswordError {
+    #[error("Password is too short")]
     TooShort,
 }
 

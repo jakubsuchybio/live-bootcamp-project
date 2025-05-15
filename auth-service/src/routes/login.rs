@@ -4,34 +4,35 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::{AuthAPIError, Email, LoginAttemptId, Password, TwoFACode},
-    utils::auth,
+    utils::auth::generate_auth_cookie,
     AppState,
 };
 
+#[tracing::instrument(name = "Login", skip_all, err(Debug))]
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
     Json(request): Json<LoginRequest>,
-) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
+) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
     let email = request.email;
     let password = request.password;
 
     // Validate input
     let Ok(email) = Email::parse(&email) else {
-        return (jar, Err(AuthAPIError::InvalidCredentials));
+        return Err(AuthAPIError::InvalidCredentials);
     };
 
     let Ok(password) = Password::parse(&password) else {
-        return (jar, Err(AuthAPIError::InvalidCredentials));
+        return Err(AuthAPIError::InvalidCredentials);
     };
 
     let user_store = &state.user_store.read().await;
     if user_store.validate_user(&email, &password).await.is_err() {
-        return (jar, Err(AuthAPIError::IncorrectCredentials));
+        return Err(AuthAPIError::IncorrectCredentials);
     }
 
     let Ok(user) = user_store.get_user(&email).await else {
-        return (jar, Err(AuthAPIError::IncorrectCredentials));
+        return Err(AuthAPIError::IncorrectCredentials);
     };
 
     // Handle request based on user's 2FA configuration
@@ -41,33 +42,29 @@ pub async fn login(
     }
 }
 
+#[tracing::instrument(name = "Login", skip_all, err(Debug))]
 async fn handle_2fa(
     email: &Email,
     state: &AppState,
     jar: CookieJar,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
-) {
+) -> Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
     let login_atempt_id = LoginAttemptId::default();
     let two_fa_code = TwoFACode::default();
 
     let mut two_fa_code_store = state.two_fa_code_store.write().await;
-    if two_fa_code_store
+    if let Err(e) = two_fa_code_store
         .add_code(email.clone(), login_atempt_id.clone(), two_fa_code.clone())
         .await
-        .is_err()
     {
-        return (jar, Err(AuthAPIError::UnexpectedError));
+        return Err(AuthAPIError::UnexpectedError(e.into()));
     }
 
     let email_client = state.email_client.read().await;
-    if email_client
+    if let Err(e) = email_client
         .send_email(email, "Your 2FA Code", two_fa_code.as_ref())
         .await
-        .is_err()
     {
-        return (jar, Err(AuthAPIError::UnexpectedError));
+        return Err(AuthAPIError::UnexpectedError(e.into()));
     }
 
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
@@ -75,27 +72,26 @@ async fn handle_2fa(
         login_attempt_id: login_atempt_id.as_ref().to_string(),
     }));
 
-    (jar, Ok((StatusCode::PARTIAL_CONTENT, response)))
+    Ok((jar, (StatusCode::PARTIAL_CONTENT, response)))
 }
 
+#[tracing::instrument(name = "Login", skip_all, err(Debug))]
 async fn handle_no_2fa(
     email: &Email,
     jar: CookieJar,
-) -> (
-    CookieJar,
-    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
-) {
+) -> Result<(CookieJar, (StatusCode, Json<LoginResponse>)), AuthAPIError> {
     // Return success response
-    let Ok(auth_cookie) = auth::generate_auth_cookie(&email) else {
-        return (jar, Err(AuthAPIError::UnexpectedError));
+    let auth_cookie = match generate_auth_cookie(email) {
+        Ok(cookie) => cookie,
+        Err(e) => return Err(AuthAPIError::UnexpectedError(e)),
     };
 
     let updated_jar = jar.add(auth_cookie);
 
-    (
+    Ok((
         updated_jar,
-        Ok((StatusCode::OK, Json(LoginResponse::RegularAuth))),
-    )
+        (StatusCode::OK, Json(LoginResponse::RegularAuth)),
+    ))
 }
 
 #[derive(Deserialize)]

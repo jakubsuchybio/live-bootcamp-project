@@ -16,7 +16,10 @@ use axum::{
     Extension, Router,
 };
 use redis::{Client, RedisResult};
-use routes::{login, logout, signup, verify_2fa, verify_token};
+use routes::{signup, verify_token};
+//use routes::verify_2fa;
+//use routes::logout;
+use routes::login;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::error::Error;
 use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
@@ -24,7 +27,7 @@ use utils::{make_span_with_request_id, on_request, on_response};
 
 pub use app_state::{AppState, BannedTokenStoreType, EmailClientType, TwoFACodeStoreType};
 pub use domain::{Email, ErrorResponse, LoginAttemptId, TwoFACode};
-pub use routes::TwoFactorAuthResponse;
+//pub use routes::TwoFactorAuthResponse;
 pub use services::{
     HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
     PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore,
@@ -73,8 +76,8 @@ impl Application {
             .nest_service("/assets", ServeDir::new("assets"))
             .route("/signup", post(signup))
             .route("/login", post(login))
-            .route("/logout", post(logout))
-            .route("/verify-2fa", post(verify_2fa))
+            //.route("/logout", post(logout))
+            //.route("/verify-2fa", post(verify_2fa))
             .route("/verify-token", post(verify_token))
             .route("/health", get(health))
             .with_state(app_state.clone())

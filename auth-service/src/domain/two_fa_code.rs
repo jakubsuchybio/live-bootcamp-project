@@ -1,16 +1,17 @@
+use color_eyre::eyre::{eyre, Context, Result};
 use rand::Rng;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TwoFACode(String);
 
 impl TwoFACode {
-    pub fn parse(code: &str) -> Result<Self, String> {
-        // Check if the code is a 6-digit number
-        if code.len() != 6 || !code.chars().all(|c| c.is_ascii_digit()) {
-            return Err("2FA code must be a 6-digit number".to_string());
+    pub fn parse(code: &str) -> Result<Self> {
+        let code_as_u32 = code.parse::<u32>().wrap_err("Invalid 2FA code")?;
+        if (100_000..=999_999).contains(&code_as_u32) {
+            Ok(Self(code.to_string()))
+        } else {
+            Err(eyre!("Invalid 2FA code")) // Updated!
         }
-
-        Ok(TwoFACode(code.to_string()))
     }
 }
 

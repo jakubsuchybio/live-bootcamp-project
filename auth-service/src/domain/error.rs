@@ -3,17 +3,26 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use color_eyre::eyre::Report;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AuthAPIError {
+    #[error("User already exists")]
     UserAlreadyExists,
+    #[error("Invalid credentials")]
     InvalidCredentials,
+    #[error("Incorrect credentials")]
     IncorrectCredentials,
+    #[error("Missing token")]
     MissingToken,
+    #[error("Invalid token")]
     InvalidToken,
+    #[error("Verification failed")]
     VerificationFailed,
-    UnexpectedError,
+    #[error("Unexpected error")]
+    UnexpectedError(#[source] Report),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,7 +43,7 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::IncorrectCredentials => {
                 (StatusCode::UNAUTHORIZED, "Incorrect credentials")
             }
-            AuthAPIError::UnexpectedError => {
+            AuthAPIError::UnexpectedError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
         };

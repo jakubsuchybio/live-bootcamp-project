@@ -1,8 +1,11 @@
+use thiserror::Error;
+
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Email(String);
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum EmailError {
+    #[error("Invalid email")]
     InvalidEmail,
 }
 
