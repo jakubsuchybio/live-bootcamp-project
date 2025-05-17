@@ -1,10 +1,11 @@
 use dotenvy::dotenv;
 use lazy_static::lazy_static;
+use secrecy::Secret;
 use std::env as std_env;
 
 lazy_static! {
     pub static ref JWT_SECRET: String = set_token();
-    pub static ref DATABASE_URL: String = set_database_url();
+    pub static ref DATABASE_URL: Secret<String> = set_database_url();
     pub static ref REDIS_HOST_NAME: String = set_redis_host();
 }
 
@@ -18,14 +19,14 @@ fn set_token() -> String {
     secret
 }
 
-fn set_database_url() -> String {
+fn set_database_url() -> Secret<String> {
     dotenv().ok();
     let database_url =
         std_env::var(env::DATABASE_URL_ENV_VAR).expect("DATABASE_URL environment variable not set");
     if database_url.is_empty() {
         panic!("DATABASE_URL environment variable is empty");
     }
-    database_url
+    Secret::new(database_url)
 }
 
 fn set_redis_host() -> String {

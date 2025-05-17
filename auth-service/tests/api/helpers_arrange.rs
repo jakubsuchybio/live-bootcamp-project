@@ -1,5 +1,6 @@
-use auth_service::{Email, JWT_COOKIE_NAME, TwoFactorAuthResponse};
+use auth_service::{Email, TwoFactorAuthResponse, JWT_COOKIE_NAME};
 use reqwest::Url;
+use secrecy::{ExposeSecret, Secret};
 
 use crate::helpers_harness::{get_random_email, TestApp};
 
@@ -40,14 +41,20 @@ impl TestUser {
     }
 
     /// Customize a test user with specific attributes
-    pub fn with_attributes(email: Option<&str>, password: Option<&str>, requires_2fa: bool) -> Self {
+    pub fn with_attributes(
+        email: Option<&str>,
+        password: Option<&str>,
+        requires_2fa: bool,
+    ) -> Self {
         Self {
             email: email.map(String::from).unwrap_or_else(get_random_email),
-            password: password.map(String::from).unwrap_or_else(|| "password123".to_string()),
+            password: password
+                .map(String::from)
+                .unwrap_or_else(|| "password123".to_string()),
             requires_2fa,
         }
     }
-    
+
     /// Get a signup JSON payload for this user
     pub fn signup_payload(&self) -> serde_json::Value {
         serde_json::json!({
@@ -56,7 +63,7 @@ impl TestUser {
             "requires2FA": self.requires_2fa
         })
     }
-    
+
     /// Get a login JSON payload for this user
     pub fn login_payload(&self) -> serde_json::Value {
         serde_json::json!({
@@ -76,17 +83,15 @@ pub struct TwoFAData {
 /// Register a user and assert success
 /// (Use this in the arrange phase only, not act)
 pub async fn setup_registered_user(app: &TestApp, user: &TestUser) -> TestUser {
-    let response = app
-        .post_signup(&user.signup_payload())
-        .await;
-    
+    let response = app.post_signup(&user.signup_payload()).await;
+
     assert_eq!(
         response.status().as_u16(),
         201,
         "Failed to register user with email: {}",
         user.email
     );
-    
+
     user.clone()
 }
 
@@ -94,22 +99,20 @@ pub async fn setup_registered_user(app: &TestApp, user: &TestUser) -> TestUser {
 /// (Use this in the arrange phase only, not act)
 pub async fn setup_logged_in_user(app: &TestApp) -> (TestUser, String) {
     let user = TestUser::new();
-    
+
     // Register the user
     let registered_user = setup_registered_user(app, &user).await;
-    
+
     // Log in the user
-    let login_response = app
-        .post_login(&registered_user.login_payload())
-        .await;
-    
+    let login_response = app.post_login(&registered_user.login_payload()).await;
+
     assert_eq!(login_response.status().as_u16(), 200, "Login failed");
-    
+
     let auth_cookie = login_response
         .cookies()
         .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
         .expect("No auth cookie found");
-    
+
     (registered_user, auth_cookie.value().to_string())
 }
 
@@ -117,41 +120,44 @@ pub async fn setup_logged_in_user(app: &TestApp) -> (TestUser, String) {
 /// (Use this in the arrange phase only, not act)
 pub async fn setup_2fa_login_started(app: &TestApp) -> (TestUser, TwoFAData) {
     let user = TestUser::new_with_2fa();
-    
+
     // Register the user
     let registered_user = setup_registered_user(app, &user).await;
-    
+
     // Start the login process
-    let login_response = app
-        .post_login(&registered_user.login_payload())
-        .await;
-    
-    assert_eq!(login_response.status().as_u16(), 206, "Expected 206 for 2FA login");
-    
+    let login_response = app.post_login(&registered_user.login_payload()).await;
+
+    assert_eq!(
+        login_response.status().as_u16(),
+        206,
+        "Expected 206 for 2FA login"
+    );
+
     let response_body = login_response
         .json::<TwoFactorAuthResponse>()
         .await
         .expect("Could not deserialize response body to TwoFactorAuthResponse");
-    
+
     assert_eq!(response_body.message, "2FA required".to_owned());
-    
+
     // Get the 2FA code
-    let (login_attempt_id, two_fa_code) = get_2fa_code_tuple(app, &registered_user.email).await;
-    
+    let (login_attempt_id, two_fa_code) =
+        get_2fa_code_tuple(app, Secret::new(registered_user.email.clone())).await;
+
     // Verify login_attempt_id matches what's in the response
     assert_eq!(login_attempt_id, response_body.login_attempt_id);
-    
+
     let two_fa_data = TwoFAData {
         login_attempt_id,
         two_fa_code,
     };
-    
+
     (registered_user, two_fa_data)
 }
 
 /// Get the 2FA code tuple for a user
 /// (Use this in the arrange phase only, not act)
-pub async fn get_2fa_code_tuple(app: &TestApp, email: &str) -> (String, String) {
+pub async fn get_2fa_code_tuple(app: &TestApp, email: Secret<String>) -> (String, String) {
     let code_tuple = app
         .two_fa_code_store
         .read()
@@ -159,10 +165,10 @@ pub async fn get_2fa_code_tuple(app: &TestApp, email: &str) -> (String, String) 
         .get_code(&Email::parse(email).unwrap())
         .await
         .expect("Failed to get 2FA code");
-    
+
     (
-        code_tuple.0.as_ref().to_owned(), // login_attempt_id
-        code_tuple.1.as_ref().to_owned()  // 2fa_code
+        code_tuple.0.as_ref().expose_secret().to_owned(), // login_attempt_id
+        code_tuple.1.as_ref().expose_secret().to_owned(), // 2fa_code
     )
 }
 

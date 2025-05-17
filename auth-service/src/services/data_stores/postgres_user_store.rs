@@ -5,6 +5,7 @@ use argon2::{
     PasswordVerifier, Version,
 };
 
+use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
 
 use crate::{
@@ -31,7 +32,7 @@ impl UserStore for PostgresUserStore {
             r#"
             SELECT email FROM users WHERE email = $1
             "#,
-            user.email.as_ref()
+            user.email.as_ref().expose_secret()
         )
         .fetch_optional(&self.pool)
         .await
@@ -41,7 +42,7 @@ impl UserStore for PostgresUserStore {
             return Err(UserStoreError::UserAlreadyExists);
         }
 
-        let password_hash = compute_password_hash_async(user.password.as_ref().to_string())
+        let password_hash = compute_password_hash_async(user.password.as_ref().to_owned())
             .await
             .map_err(UserStoreError::UnexpectedError)?;
 
@@ -50,7 +51,7 @@ impl UserStore for PostgresUserStore {
             INSERT INTO users (email, password_hash, requires_2fa)
             VALUES ($1, $2, $3)
             "#,
-            user.email.as_ref(),
+            user.email.as_ref().expose_secret(),
             password_hash,
             user.requires_2fa
         )
@@ -69,16 +70,16 @@ impl UserStore for PostgresUserStore {
             FROM users
             WHERE email = $1
             "#,
-            email.as_ref()
+            email.as_ref().expose_secret()
         )
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| UserStoreError::UnexpectedError(e.into()))?
         .map(|row| {
             Ok(User {
-                email: Email::parse(&row.email)
+                email: Email::parse(Secret::new(row.email))
                     .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
-                password: Password::parse(&row.password_hash)
+                password: Password::parse(Secret::new(row.password_hash))
                     .map_err(|e| UserStoreError::UnexpectedError(eyre!(e)))?,
                 requires_2fa: row.requires_2fa,
             })
@@ -98,15 +99,15 @@ impl UserStore for PostgresUserStore {
             FROM users
             WHERE email = $1
             "#,
-            email.as_ref()
+            email.as_ref().expose_secret()
         )
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| UserStoreError::UnexpectedError(e.into()))?
-        .map(|row| row.password_hash)
+        .map(|row| Secret::new(row.password_hash))
         .ok_or(UserStoreError::UserNotFound)?;
 
-        if verify_password_hash(password_hash, password.as_ref().to_string())
+        if verify_password_hash(password_hash, password.as_ref().to_owned())
             .await
             .is_ok()
         {
@@ -120,14 +121,18 @@ impl UserStore for PostgresUserStore {
 // Helper function to verify if a given password matches an expected hash
 #[tracing::instrument(name = "Verify password hash", skip_all)]
 async fn verify_password_hash(
-    expected_password_hash: String,
-    password_candidate: String,
+    expected_password_hash: Secret<String>,
+    password_candidate: Secret<String>,
 ) -> Result<()> {
     tokio::task::spawn_blocking(move || {
-        let expected_password_hash: PasswordHash<'_> = PasswordHash::new(&expected_password_hash)?;
+        let expected_password_hash: PasswordHash<'_> =
+            PasswordHash::new(expected_password_hash.expose_secret())?;
 
         Argon2::default()
-            .verify_password(password_candidate.as_bytes(), &expected_password_hash)
+            .verify_password(
+                password_candidate.expose_secret().as_bytes(),
+                &expected_password_hash,
+            )
             .map_err(|e| e.into())
     })
     .await?
@@ -136,7 +141,7 @@ async fn verify_password_hash(
 // Helper function to hash passwords before persisting them in the database.
 // Performs hashing on a separate thread pool to avoid blocking the async runtime
 #[tracing::instrument(name = "Computing password hash", skip_all)]
-async fn compute_password_hash_async(password: String) -> Result<String> {
+async fn compute_password_hash_async(password: Secret<String>) -> Result<String> {
     tokio::task::spawn_blocking(move || {
         let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
         let password_hash = Argon2::new(
@@ -144,7 +149,7 @@ async fn compute_password_hash_async(password: String) -> Result<String> {
             Version::V0x13,
             Params::new(15000, 2, 1, None)?,
         )
-        .hash_password(password.as_bytes(), &salt)?
+        .hash_password(password.expose_secret().as_bytes(), &salt)?
         .to_string();
 
         Ok(password_hash)

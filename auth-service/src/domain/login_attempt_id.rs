@@ -1,24 +1,31 @@
 use color_eyre::eyre::{Context, Result};
+use secrecy::{ExposeSecret, Secret};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct LoginAttemptId(String);
+#[derive(Debug, Clone)]
+pub struct LoginAttemptId(Secret<String>);
+
+impl PartialEq for LoginAttemptId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}
 
 impl LoginAttemptId {
-    pub fn parse(id: &str) -> Result<Self> {
-        let id = Uuid::parse_str(id).wrap_err("Invalid login attempt id")?;
-        Ok(LoginAttemptId(id.to_string()))
+    pub fn parse(id: &Secret<String>) -> Result<Self> {
+        let id = Uuid::parse_str(id.expose_secret()).wrap_err("Invalid login attempt id")?;
+        Ok(LoginAttemptId(Secret::new(id.to_string())))
     }
 }
 
 impl Default for LoginAttemptId {
     fn default() -> Self {
-        LoginAttemptId(Uuid::new_v4().to_string())
+        LoginAttemptId(Secret::new(Uuid::new_v4().to_string()))
     }
 }
 
-impl AsRef<str> for LoginAttemptId {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for LoginAttemptId {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }
@@ -30,23 +37,26 @@ mod tests {
     #[test]
     fn test_login_attempt_id_parse_valid_uuid() {
         // Arrange
-        let valid_uuid = Uuid::new_v4().to_string();
+        let valid_uuid = Secret::new(Uuid::new_v4().to_string());
 
         // Act
         let result = LoginAttemptId::parse(&valid_uuid);
 
         // Assert
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().0, valid_uuid);
+        assert_eq!(
+            result.unwrap().0.expose_secret(),
+            valid_uuid.expose_secret()
+        );
     }
 
     #[test]
     fn test_login_attempt_id_parse_invalid_uuid() {
         // Arrange
-        let invalid_uuid = "not-a-uuid";
+        let invalid_uuid = Secret::new("not-a-uuid".to_string());
 
         // Act
-        let result = LoginAttemptId::parse(invalid_uuid);
+        let result = LoginAttemptId::parse(&invalid_uuid);
 
         // Assert
         assert!(result.is_err());
@@ -58,19 +68,19 @@ mod tests {
         let id = LoginAttemptId::default();
 
         // Assert
-        assert!(Uuid::parse_str(&id.0).is_ok());
+        assert!(Uuid::parse_str(&id.0.expose_secret()).is_ok());
     }
 
     #[test]
     fn test_login_attempt_id_as_ref() {
         // Arrange
-        let uuid_str = Uuid::new_v4().to_string();
+        let uuid_str = Secret::new(Uuid::new_v4().to_string());
         let id = LoginAttemptId(uuid_str.clone());
 
         // Act
         let result = id.as_ref();
 
         // Assert
-        assert_eq!(result, uuid_str);
+        assert_eq!(result.expose_secret(), uuid_str.expose_secret());
     }
 }

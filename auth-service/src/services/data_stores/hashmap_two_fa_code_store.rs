@@ -50,6 +50,8 @@ impl TwoFACodeStore for HashMapTwoFACodeStore {
 
 #[cfg(test)]
 mod tests {
+    use secrecy::Secret;
+
     use super::*;
     use crate::domain::{Email, LoginAttemptId, TwoFACode};
 
@@ -57,9 +59,9 @@ mod tests {
     async fn test_add_code_successfully() {
         // Arrange
         let mut store = HashMapTwoFACodeStore::default();
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
-        let code = TwoFACode::parse("123456").unwrap();
+        let code = TwoFACode::parse(&Secret::new("123456".to_string())).unwrap();
 
         // Act
         let result = store
@@ -76,9 +78,9 @@ mod tests {
     async fn test_remove_code_successfully() {
         // Arrange
         let mut store = HashMapTwoFACodeStore::default();
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
-        let code = TwoFACode::parse("123456").unwrap();
+        let code = TwoFACode::parse(&Secret::new("123456".to_string())).unwrap();
         let _ = store.add_code(email.clone(), login_attempt_id, code).await;
 
         // Act
@@ -93,7 +95,7 @@ mod tests {
     async fn test_remove_code_returns_error_when_email_not_found() {
         // Arrange
         let mut store = HashMapTwoFACodeStore::default();
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
 
         // Act
         let result = store.remove_code(&email).await;
@@ -109,9 +111,9 @@ mod tests {
     async fn test_get_code_successfully() {
         // Arrange
         let mut store = HashMapTwoFACodeStore::default();
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let login_attempt_id = LoginAttemptId::default();
-        let code = TwoFACode::parse("123456").unwrap();
+        let code = TwoFACode::parse(&Secret::new("123456".to_string())).unwrap();
         let _ = store
             .add_code(email.clone(), login_attempt_id.clone(), code.clone())
             .await;
@@ -130,7 +132,7 @@ mod tests {
     async fn test_get_code_returns_error_when_email_not_found() {
         // Arrange
         let store = HashMapTwoFACodeStore::default();
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
 
         // Act
         let result = store.get_code(&email).await;

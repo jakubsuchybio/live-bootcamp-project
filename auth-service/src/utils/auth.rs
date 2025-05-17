@@ -3,6 +3,7 @@ use chrono::Utc;
 use color_eyre::eyre::{eyre, Context, ContextCompat};
 use color_eyre::Result;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 
 use crate::app_state::BannedTokenStoreType;
@@ -69,7 +70,7 @@ fn generate_auth_token(email: &Email) -> Result<String> {
         exp
     ))?;
 
-    let sub = email.as_ref().to_owned();
+    let sub = email.as_ref().expose_secret().to_owned();
 
     let claims = Claims { sub, exp };
 
@@ -101,6 +102,7 @@ fn create_auth_cookie(token: String) -> Cookie<'static> {
 mod tests {
     use std::sync::Arc;
 
+    use secrecy::Secret;
     use tokio::sync::RwLock;
 
     use crate::HashSetBannedTokenStore;
@@ -110,7 +112,7 @@ mod tests {
     #[tokio::test]
     async fn test_generate_auth_cookie() {
         // Arrange
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
 
         // Act
         let cookie = generate_auth_cookie(&email).unwrap();
@@ -142,7 +144,7 @@ mod tests {
     #[tokio::test]
     async fn test_generate_auth_token() {
         // Arrange
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
 
         // Act
         let result = generate_auth_token(&email).unwrap();
@@ -154,7 +156,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_token_with_valid_token() {
         // Arrange
-        let email = Email::parse("test@example.com").unwrap();
+        let email = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
         let token = generate_auth_token(&email).unwrap();
         let banned_token_store = Arc::new(RwLock::new(HashSetBannedTokenStore::default()));
 

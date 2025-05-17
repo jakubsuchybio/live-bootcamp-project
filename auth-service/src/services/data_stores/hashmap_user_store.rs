@@ -54,6 +54,8 @@ impl UserStore for HashMapUserStore {
 // TODO: Add unit tests for your `HashmapUserStore` implementation
 #[cfg(test)]
 mod tests {
+    use secrecy::Secret;
+
     use super::*;
     use crate::domain::User;
 
@@ -62,8 +64,8 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
 
@@ -79,8 +81,8 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
         store.add_user(user.clone()).await.unwrap();
@@ -97,8 +99,8 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
         store.add_user(user.clone()).await.unwrap();
@@ -115,12 +117,13 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
         store.add_user(user.clone()).await.unwrap();
-        let not_found_email = Email::parse("not_found@example.com").unwrap();
+        let not_found_email =
+            Email::parse(Secret::new("not_found@example.com".to_string())).unwrap();
         // Act
         let result = store.get_user(&not_found_email).await;
 
@@ -133,8 +136,8 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
         store.add_user(user.clone()).await.unwrap();
@@ -151,12 +154,12 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
         store.add_user(user.clone()).await.unwrap();
-        let wrong_password = Password::parse("wrong_password").unwrap();
+        let wrong_password = Password::parse(Secret::new("wrong_password".to_string())).unwrap();
 
         // Act
         let result = store.validate_user(&user.email, &wrong_password).await;
@@ -170,12 +173,13 @@ mod tests {
         // Arrange
         let mut store = HashMapUserStore::default();
         let user = User::new(
-            Email::parse("test@example.com").unwrap(),
-            Password::parse("password").unwrap(),
+            Email::parse(Secret::new("test@example.com".to_string())).unwrap(),
+            Password::parse(Secret::new("password".to_string())).unwrap(),
             false,
         );
         store.add_user(user.clone()).await.unwrap();
-        let not_found_email = Email::parse("not_found@example.com").unwrap();
+        let not_found_email =
+            Email::parse(Secret::new("not_found@example.com".to_string())).unwrap();
 
         // Act
         let result = store.validate_user(&not_found_email, &user.password).await;

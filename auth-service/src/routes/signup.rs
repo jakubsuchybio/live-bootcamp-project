@@ -3,6 +3,7 @@ use crate::{
     AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 
 #[tracing::instrument(name = "Signing up", skip_all)]
@@ -14,11 +15,11 @@ pub async fn signup(
     let password = request.password;
 
     // Validate input
-    let Ok(email) = Email::parse(&email) else {
+    let Ok(email) = Email::parse(email) else {
         return Err(AuthAPIError::InvalidCredentials);
     };
 
-    let Ok(password) = Password::parse(&password) else {
+    let Ok(password) = Password::parse(password) else {
         return Err(AuthAPIError::InvalidCredentials);
     };
 
@@ -49,8 +50,8 @@ pub async fn signup(
 
 #[derive(Deserialize)]
 pub struct SignupRequest {
-    pub email: String,
-    pub password: String,
+    pub email: Secret<String>,
+    pub password: Secret<String>,
     #[serde(rename = "requires2FA")]
     pub requires_2fa: bool,
 }

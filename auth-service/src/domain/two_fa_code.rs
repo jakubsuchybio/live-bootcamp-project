@@ -1,16 +1,26 @@
 use color_eyre::eyre::{eyre, Context, Result};
 use rand::Rng;
+use secrecy::{ExposeSecret, Secret};
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct TwoFACode(String);
+#[derive(Clone, Debug)]
+pub struct TwoFACode(Secret<String>);
+
+impl PartialEq for TwoFACode {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}
 
 impl TwoFACode {
-    pub fn parse(code: &str) -> Result<Self> {
-        let code_as_u32 = code.parse::<u32>().wrap_err("Invalid 2FA code")?;
+    pub fn parse(code: &Secret<String>) -> Result<Self> {
+        let code_as_u32 = code
+            .expose_secret()
+            .parse::<u32>()
+            .wrap_err("Invalid 2FA code")?;
         if (100_000..=999_999).contains(&code_as_u32) {
-            Ok(Self(code.to_string()))
+            Ok(Self(code.to_owned()))
         } else {
-            Err(eyre!("Invalid 2FA code")) // Updated!
+            Err(eyre!("Invalid 2FA code"))
         }
     }
 }
@@ -21,12 +31,12 @@ impl Default for TwoFACode {
         // The code should be 6 digits (ex: 834629)
         let mut rng = rand::thread_rng();
         let code: String = (0..6).map(|_| rng.gen_range(0..10).to_string()).collect();
-        TwoFACode(code)
+        TwoFACode(Secret::new(code))
     }
 }
 
-impl AsRef<str> for TwoFACode {
-    fn as_ref(&self) -> &str {
+impl AsRef<Secret<String>> for TwoFACode {
+    fn as_ref(&self) -> &Secret<String> {
         &self.0
     }
 }
@@ -41,11 +51,11 @@ mod tests {
         let valid_code = "123456";
 
         // Act
-        let result = TwoFACode::parse(valid_code);
+        let result = TwoFACode::parse(&Secret::new(valid_code.to_string()));
 
         // Assert
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().as_ref(), "123456");
+        assert_eq!(result.unwrap().as_ref().expose_secret(), "123456");
     }
 
     #[test]
@@ -55,8 +65,8 @@ mod tests {
         let long_code = "1234567";
 
         // Act
-        let short_result = TwoFACode::parse(short_code);
-        let long_result = TwoFACode::parse(long_code);
+        let short_result = TwoFACode::parse(&Secret::new(short_code.to_string()));
+        let long_result = TwoFACode::parse(&Secret::new(long_code.to_string()));
 
         // Assert
         assert!(short_result.is_err());
@@ -69,7 +79,7 @@ mod tests {
         let invalid_code = "12345a";
 
         // Act
-        let result = TwoFACode::parse(invalid_code);
+        let result = TwoFACode::parse(&Secret::new(invalid_code.to_string()));
 
         // Assert
         assert!(result.is_err());
@@ -81,20 +91,24 @@ mod tests {
         let code = TwoFACode::default();
 
         // Assert
-        assert_eq!(code.as_ref().len(), 6);
-        assert!(code.as_ref().chars().all(|c| c.is_ascii_digit()));
+        assert_eq!(code.as_ref().expose_secret().len(), 6);
+        assert!(code
+            .as_ref()
+            .expose_secret()
+            .chars()
+            .all(|c| c.is_ascii_digit()));
     }
 
     #[test]
     fn test_as_ref() {
         // Arrange
         let code = "987654";
-        let parsed_code = TwoFACode::parse(code).unwrap();
+        let parsed_code = TwoFACode::parse(&Secret::new(code.to_string())).unwrap();
 
         // Act
         let reference = parsed_code.as_ref();
 
         // Assert
-        assert_eq!(reference, code);
+        assert_eq!(reference.expose_secret(), code);
     }
 }

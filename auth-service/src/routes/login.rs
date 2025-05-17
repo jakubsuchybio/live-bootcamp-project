@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
+use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -18,11 +19,11 @@ pub async fn login(
     let password = request.password;
 
     // Validate input
-    let Ok(email) = Email::parse(&email) else {
+    let Ok(email) = Email::parse(email) else {
         return Err(AuthAPIError::InvalidCredentials);
     };
 
-    let Ok(password) = Password::parse(&password) else {
+    let Ok(password) = Password::parse(password) else {
         return Err(AuthAPIError::InvalidCredentials);
     };
 
@@ -61,7 +62,7 @@ async fn handle_2fa(
 
     let email_client = state.email_client.read().await;
     if let Err(e) = email_client
-        .send_email(email, "Your 2FA Code", two_fa_code.as_ref())
+        .send_email(email, "Your 2FA Code", two_fa_code.as_ref().expose_secret())
         .await
     {
         return Err(AuthAPIError::UnexpectedError(e.into()));
@@ -69,7 +70,7 @@ async fn handle_2fa(
 
     let response = Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
         message: "2FA required".to_owned(),
-        login_attempt_id: login_atempt_id.as_ref().to_string(),
+        login_attempt_id: login_atempt_id.as_ref().expose_secret().to_owned(),
     }));
 
     Ok((jar, (StatusCode::PARTIAL_CONTENT, response)))
@@ -96,8 +97,8 @@ async fn handle_no_2fa(
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
+    pub email: Secret<String>,
+    pub password: Secret<String>,
 }
 
 // The login route can return 2 possible success responses.

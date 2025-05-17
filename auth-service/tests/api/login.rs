@@ -4,6 +4,7 @@ use crate::helpers_harness::TestApp;
 use auth_service::TwoFactorAuthResponse;
 use db_test_macro::db_test;
 use rstest::rstest;
+use secrecy::Secret;
 
 #[db_test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
@@ -40,7 +41,7 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     assert_eq!(json_body.message, "2FA required".to_owned());
 
     // Verify 2FA code was generated and matches the login attempt ID
-    let (login_attempt_id, _) = get_2fa_code_tuple(&app, &user.email).await;
+    let (login_attempt_id, _) = get_2fa_code_tuple(&app, Secret::new(user.email)).await;
     assert_eq!(login_attempt_id, json_body.login_attempt_id);
 }
 
