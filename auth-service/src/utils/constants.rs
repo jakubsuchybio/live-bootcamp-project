@@ -7,7 +7,7 @@ lazy_static! {
     pub static ref JWT_SECRET: String = set_token();
     pub static ref DATABASE_URL: Secret<String> = set_database_url();
     pub static ref REDIS_HOST_NAME: String = set_redis_host();
-    pub static ref SLACK_WEBHOOK: String = set_slack_webhook();
+    pub static ref SLACK_WEBHOOK: Secret<String> = set_slack_webhook();
 }
 
 fn set_token() -> String {
@@ -35,14 +35,14 @@ fn set_redis_host() -> String {
     std_env::var(env::REDIS_HOST_NAME_ENV_VAR).unwrap_or(DEFAULT_REDIS_HOSTNAME.to_owned())
 }
 
-fn set_slack_webhook() -> String {
+fn set_slack_webhook() -> Secret<String> {
     dotenv().ok();
     let slack_webhook = std_env::var(env::SLACK_WEBHOOK_ENV_VAR)
         .expect("SLACK_WEBHOOK environment variable not set");
     if slack_webhook.is_empty() {
         panic!("DATABASE_URL environment variable is empty");
     }
-    slack_webhook
+    Secret::new(slack_webhook)
 }
 
 pub const JWT_COOKIE_NAME: &str = "jwt";

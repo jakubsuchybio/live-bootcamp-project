@@ -1,6 +1,7 @@
 use auth_service::{
-    configure_redis, get_postgres_pool, init_tracing, prod, AppState, Application, MockEmailClient,
-    PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore, DATABASE_URL,
+    configure_redis, get_postgres_pool, init_tracing, prod, AppState, Application,
+    PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore, SlackMessageClient,
+    DATABASE_URL, SLACK_WEBHOOK,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -13,16 +14,16 @@ async fn main() {
 
     let pg_pool = configure_postgresql().await;
     let redis_conn = Arc::new(RwLock::new(configure_redis()));
+    let slack_client = configure_slack_email_client();
 
     let user_store = PostgresUserStore::new(pg_pool);
     let banned_token_store = RedisBannedTokenStore::new(redis_conn.clone());
     let two_fa_code_store = RedisTwoFACodeStore::new(redis_conn.clone());
-    let email_client = MockEmailClient {};
     let app_state = AppState {
         user_store: Arc::from(RwLock::from(user_store)),
         banned_token_store: Arc::from(RwLock::from(banned_token_store)),
         two_fa_code_store: Arc::from(RwLock::from(two_fa_code_store)),
-        email_client: Arc::from(RwLock::from(email_client)),
+        email_client: Arc::from(RwLock::from(slack_client)),
     };
 
     let app = Application::build(app_state, prod::APP_ADDRESS)
@@ -45,4 +46,9 @@ async fn configure_postgresql() -> PgPool {
         .expect("Failed to run migrations");
 
     pg_pool
+}
+
+fn configure_slack_email_client() -> SlackMessageClient {
+    // Create a new SlackMessageClient with the webhook URL
+    SlackMessageClient::new(&SLACK_WEBHOOK)
 }

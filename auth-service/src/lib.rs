@@ -31,11 +31,11 @@ pub use domain::{Email, ErrorResponse, LoginAttemptId, TwoFACode};
 pub use routes::TwoFactorAuthResponse;
 pub use services::{
     HashMapTwoFACodeStore, HashMapUserStore, HashSetBannedTokenStore, MockEmailClient,
-    PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore,
+    PostgresUserStore, RedisBannedTokenStore, RedisTwoFACodeStore, SlackMessageClient,
 };
 pub use utils::constants::{prod, test};
 pub use utils::init_tracing;
-pub use utils::{DATABASE_URL, JWT_COOKIE_NAME, REDIS_HOST_NAME};
+pub use utils::{DATABASE_URL, JWT_COOKIE_NAME, REDIS_HOST_NAME, SLACK_WEBHOOK};
 
 #[derive(Template)]
 #[template(path = "index.html")]
