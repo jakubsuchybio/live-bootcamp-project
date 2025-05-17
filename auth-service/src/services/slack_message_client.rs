@@ -67,7 +67,7 @@ mod tests {
         // This test is disabled by default as it requires a valid Slack webhook URL
         // To run it: SLACK_WEBHOOK_URL=your_webhook_url cargo test -- --ignored test_send_slack_message
 
-        let webhook_url = std::env::var("SLACK_WEBHOOK_URL")
+        let webhook_url = std::env::var("SLACK_WEBHOOK")
             .expect("SLACK_WEBHOOK_URL environment variable must be set to run this test");
 
         let client = SlackMessageClient::new(&Secret::new(webhook_url));
