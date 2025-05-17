@@ -55,30 +55,3 @@ impl EmailClient for SlackMessageClient {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use secrecy::Secret;
-    use tokio;
-
-    #[tokio::test]
-    async fn test_send_slack_message() {
-        // This test is disabled by default as it requires a valid Slack webhook URL
-        // To run it: SLACK_WEBHOOK_URL=your_webhook_url cargo test -- --ignored test_send_slack_message
-
-        let webhook_url = std::env::var("SLACK_WEBHOOK")
-            .expect("SLACK_WEBHOOK_URL environment variable must be set to run this test");
-
-        let client = SlackMessageClient::new(&Secret::new(webhook_url));
-
-        let recipient = Email::parse(Secret::new("test@example.com".to_string())).unwrap();
-
-        let subject = "Test Subject";
-        let content = "This is a test message from the SlackMessageClient test.";
-
-        let result = client.send_email(&recipient, subject, content).await;
-
-        assert!(result.is_ok(), "Failed to send Slack message: {:?}", result);
-    }
-}
