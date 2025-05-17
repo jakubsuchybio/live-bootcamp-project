@@ -75,10 +75,25 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker images
+      # Build and push with SHA tag
+      - name: Build and push Docker images with SHA tag
         uses: docker/bake-action@v2.3.0
         env:
           TAG: ${{ github.sha }}
+        with:
+          push: true
+          files: |
+            compose.yml
+            compose.override.yml
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+            
+      # Build and push with latest tag
+      - name: Build and push Docker images with latest tag
+        uses: docker/bake-action@v2.3.0
+        env:
+          TAG: latest
         with:
           push: true
           files: |
