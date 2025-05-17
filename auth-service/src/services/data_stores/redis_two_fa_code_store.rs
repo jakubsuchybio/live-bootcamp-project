@@ -21,7 +21,7 @@ impl RedisTwoFACodeStore {
 
 #[async_trait::async_trait]
 impl TwoFACodeStore for RedisTwoFACodeStore {
-    #[tracing::instrument(name = "TwoFACodeStore", skip_all, err(Debug))]
+    #[tracing::instrument(name = "TwoFACodeStore", skip_all)]
     async fn add_code(
         &mut self,
         email: Email,
@@ -48,7 +48,7 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
         Ok(())
     }
 
-    #[tracing::instrument(name = "TwoFACodeStore", skip_all, err(Debug))]
+    #[tracing::instrument(name = "TwoFACodeStore", skip_all)]
     async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError> {
         let code_key = get_key(email);
 
@@ -62,7 +62,7 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
         Ok(())
     }
 
-    #[tracing::instrument(name = "TwoFACodeStore", skip_all, err(Debug))]
+    #[tracing::instrument(name = "TwoFACodeStore", skip_all)]
     async fn get_code(
         &self,
         email: &Email,

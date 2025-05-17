@@ -4,6 +4,7 @@ use axum::extract::State;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::Deserialize;
 
+#[tracing::instrument(name = "Verifying token", skip_all)]
 pub async fn verify_token(
     State(state): State<AppState>,
     Json(request): Json<VerifyTokenRequest>,

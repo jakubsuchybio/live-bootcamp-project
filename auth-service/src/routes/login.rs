@@ -8,7 +8,7 @@ use crate::{
     AppState,
 };
 
-#[tracing::instrument(name = "Login", skip_all, err(Debug))]
+#[tracing::instrument(name = "Logging in", skip_all)]
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -42,7 +42,7 @@ pub async fn login(
     }
 }
 
-#[tracing::instrument(name = "Login", skip_all, err(Debug))]
+#[tracing::instrument(name = "Logging in with 2fa", skip_all)]
 async fn handle_2fa(
     email: &Email,
     state: &AppState,
@@ -75,7 +75,7 @@ async fn handle_2fa(
     Ok((jar, (StatusCode::PARTIAL_CONTENT, response)))
 }
 
-#[tracing::instrument(name = "Login", skip_all, err(Debug))]
+#[tracing::instrument(name = "Logging in without 2fa", skip_all)]
 async fn handle_no_2fa(
     email: &Email,
     jar: CookieJar,

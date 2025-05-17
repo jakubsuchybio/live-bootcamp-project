@@ -1,10 +1,9 @@
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
-use color_eyre::eyre::{eyre, Context, ContextCompat, Report};
+use color_eyre::eyre::{eyre, Context, ContextCompat};
 use color_eyre::Result;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use crate::app_state::BannedTokenStoreType;
 use crate::domain::Email;
