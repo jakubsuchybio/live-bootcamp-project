@@ -126,6 +126,7 @@ jobs:
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
             export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
             export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            export SLACK_WEBHOOK=${{ secrets.SLACK_WEBHOOK }}
             export TAG=${{ github.sha }}
 
             # If certificates don't exist yet, create dummy certs for initial setup
